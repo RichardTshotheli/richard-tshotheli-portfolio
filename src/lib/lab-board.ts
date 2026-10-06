@@ -26,6 +26,31 @@ export type SoftwareItem = {
   installedOn: string;
 };
 
+export type Role = "admin" | "assistant";
+
+export type User = {
+  id: string;
+  name: string;
+  username: string;
+  passwordHash: string;
+  role: Role;
+  active: boolean;
+  canOperateLabs: boolean;
+};
+
+export type NoteKind = "maintenance" | "missing" | "other";
+
+export type MaintenanceNote = {
+  id: string;
+  labId: string;
+  authorId: string;
+  authorName: string;
+  kind: NoteKind;
+  message: string;
+  createdAt: string;
+  status: "open" | "resolved";
+};
+
 export type Lab = {
   id: string;
   name: string;
@@ -37,6 +62,7 @@ export type Lab = {
   isOpen: boolean;
   openedAt: string | null;
   openedBy: string | null;
+  openedByUserId: string | null;
   openNote: string;
   equipment: Equipment[];
   software: SoftwareItem[];
@@ -55,6 +81,16 @@ export type AttendanceEntry = {
 export type LabBoardState = {
   labs: Lab[];
   attendance: AttendanceEntry[];
+  users: User[];
+  notes: MaintenanceNote[];
+};
+
+export type UserDraft = {
+  name: string;
+  username: string;
+  passwordHash: string;
+  role: Role;
+  canOperateLabs: boolean;
 };
 
 export type LabDraft = {
@@ -102,6 +138,22 @@ export const PURPOSE_LABELS: Record<VisitPurpose, string> = {
   other: "Other",
 };
 
+export const NOTE_LABELS: Record<NoteKind, string> = {
+  maintenance: "Maintenance",
+  missing: "Missing item",
+  other: "Other",
+};
+
+export const NOTE_KINDS = ["maintenance", "missing", "other"] as const;
+
+export function canOperate(user: User | null | undefined) {
+  return Boolean(user && user.active && user.role === "assistant" && user.canOperateLabs);
+}
+
+export function isAdmin(user: User | null | undefined) {
+  return Boolean(user && user.active && user.role === "admin");
+}
+
 function equipment(id: string, name: string, quantity: number, condition: EquipmentCondition, notes = ""): Equipment {
   return { id, name, quantity, condition, notes };
 }
@@ -117,6 +169,8 @@ function lab(partial: Lab): Lab {
 export function seedLabBoard(): LabBoardState {
   return {
     attendance: [],
+    users: [],
+    notes: [],
     labs: [
       lab({
         id: "cse-computer-a",
@@ -129,6 +183,7 @@ export function seedLabBoard(): LabBoardState {
         isOpen: false,
         openedAt: null,
         openedBy: null,
+        openedByUserId: null,
         openNote: "",
         equipment: [
           equipment("cse-a-pc", "Desktop computers", 30, "working"),
@@ -154,6 +209,7 @@ export function seedLabBoard(): LabBoardState {
         isOpen: false,
         openedAt: null,
         openedBy: null,
+        openedByUserId: null,
         openNote: "",
         equipment: [
           equipment("cse-b-pc", "Desktop computers", 24, "working"),
@@ -178,6 +234,7 @@ export function seedLabBoard(): LabBoardState {
         isOpen: false,
         openedAt: null,
         openedBy: null,
+        openedByUserId: null,
         openNote: "",
         equipment: [
           equipment("cse-e-scope", "Oscilloscopes", 10, "working"),
@@ -200,6 +257,7 @@ export function seedLabBoard(): LabBoardState {
         isOpen: false,
         openedAt: null,
         openedBy: null,
+        openedByUserId: null,
         openNote: "",
         equipment: [
           equipment("cse-n-router", "Cisco routers", 8, "working"),
@@ -270,6 +328,7 @@ function asLab(value: unknown): Lab | null {
     isOpen: value.isOpen === true,
     openedAt: typeof value.openedAt === "string" ? value.openedAt : null,
     openedBy: typeof value.openedBy === "string" ? value.openedBy : null,
+    openedByUserId: typeof value.openedByUserId === "string" ? value.openedByUserId : null,
     openNote: typeof value.openNote === "string" ? value.openNote : "",
     equipment: equipmentList,
     software: softwareList,
@@ -291,6 +350,38 @@ function asAttendance(value: unknown): AttendanceEntry | null {
   };
 }
 
+function asUser(value: unknown): User | null {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.name !== "string") return null;
+  if (typeof value.username !== "string" || typeof value.passwordHash !== "string") return null;
+  if (value.role !== "admin" && value.role !== "assistant") return null;
+  return {
+    id: value.id,
+    name: value.name,
+    username: value.username,
+    passwordHash: value.passwordHash,
+    role: value.role,
+    active: value.active !== false,
+    canOperateLabs: value.canOperateLabs === true,
+  };
+}
+
+function asNote(value: unknown): MaintenanceNote | null {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.labId !== "string") return null;
+  if (typeof value.authorId !== "string" || typeof value.authorName !== "string" || typeof value.message !== "string") return null;
+  if (value.kind !== "maintenance" && value.kind !== "missing" && value.kind !== "other") return null;
+  if (typeof value.createdAt !== "string") return null;
+  return {
+    id: value.id,
+    labId: value.labId,
+    authorId: value.authorId,
+    authorName: value.authorName,
+    kind: value.kind,
+    message: value.message,
+    createdAt: value.createdAt,
+    status: value.status === "resolved" ? "resolved" : "open",
+  };
+}
+
 export function loadLabBoard(): LabBoardState {
   if (typeof window === "undefined") return seedLabBoard();
   try {
@@ -303,7 +394,9 @@ export function loadLabBoard(): LabBoardState {
     const attendance = Array.isArray(parsed.attendance)
       ? parsed.attendance.map(asAttendance).filter((item) => item !== null)
       : [];
-    return { labs, attendance };
+    const users = Array.isArray(parsed.users) ? parsed.users.map(asUser).filter((item) => item !== null) : [];
+    const notes = Array.isArray(parsed.notes) ? parsed.notes.map(asNote).filter((item) => item !== null) : [];
+    return { labs, attendance, users, notes };
   } catch {
     return seedLabBoard();
   }
@@ -361,40 +454,57 @@ function replaceLab(state: LabBoardState, labId: string, next: Lab): LabBoardSta
   return { ...state, labs: state.labs.map((item) => (item.id === labId ? next : item)) };
 }
 
-export function openLab(state: LabBoardState, labId: string, openedBy: string, note: string): ActionResult {
-  const name = clip(openedBy, 80);
-  if (!name) return { ok: false, message: "Enter the name of the person opening the lab." };
+export function openLab(state: LabBoardState, labId: string, actor: User, note: string): ActionResult {
+  if (!canOperate(actor)) return { ok: false, message: "Only a lab assistant with rights can open a lab." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
-  if (lab.isOpen) return { ok: false, message: "This lab is already open. Update the note, or close it first." };
+  if (lab.isOpen) return { ok: false, message: "This lab is already open." };
   return {
     ok: true,
     state: replaceLab(state, labId, {
       ...lab,
       isOpen: true,
       openedAt: new Date().toISOString(),
-      openedBy: name,
+      openedBy: actor.name,
+      openedByUserId: actor.id,
       openNote: clip(note, 400),
     }),
   };
 }
 
-export function updateOpenNote(state: LabBoardState, labId: string, openedBy: string, note: string): ActionResult {
+export function takeOverLab(state: LabBoardState, labId: string, actor: User): ActionResult {
+  if (!canOperate(actor)) return { ok: false, message: "Only a lab assistant with rights can take over a lab." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
-  if (!lab.isOpen) return { ok: false, message: "Open the lab before updating the note." };
-  const name = clip(openedBy, 80);
+  if (!lab.isOpen) return { ok: false, message: "Open the lab before taking over duty." };
+  if (lab.openedByUserId === actor.id) return { ok: false, message: "You are already on duty in this lab." };
   return {
     ok: true,
     state: replaceLab(state, labId, {
       ...lab,
-      openedBy: name || lab.openedBy,
+      openedAt: new Date().toISOString(),
+      openedBy: actor.name,
+      openedByUserId: actor.id,
+    }),
+  };
+}
+
+export function updateOpenNote(state: LabBoardState, labId: string, actor: User, note: string): ActionResult {
+  if (!canOperate(actor)) return { ok: false, message: "Only a lab assistant with rights can update the open note." };
+  const lab = requireLab(state, labId);
+  if (isFailure(lab)) return lab;
+  if (!lab.isOpen) return { ok: false, message: "Open the lab before updating the note." };
+  return {
+    ok: true,
+    state: replaceLab(state, labId, {
+      ...lab,
       openNote: clip(note, 400),
     }),
   };
 }
 
-export function closeLab(state: LabBoardState, labId: string): ActionResult {
+export function closeLab(state: LabBoardState, labId: string, actor: User): ActionResult {
+  if (!canOperate(actor)) return { ok: false, message: "Only a lab assistant with rights can close a lab." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   if (!lab.isOpen) return { ok: false, message: "This lab is already closed." };
@@ -402,9 +512,10 @@ export function closeLab(state: LabBoardState, labId: string): ActionResult {
   return {
     ok: true,
     state: {
+      ...state,
       labs: state.labs.map((item) =>
         item.id === labId
-          ? { ...item, isOpen: false, openedAt: null, openedBy: null, openNote: "" }
+          ? { ...item, isOpen: false, openedAt: null, openedBy: null, openedByUserId: null, openNote: "" }
           : item,
       ),
       attendance: state.attendance.map((entry) =>
@@ -417,8 +528,10 @@ export function closeLab(state: LabBoardState, labId: string): ActionResult {
 export function signIn(
   state: LabBoardState,
   labId: string,
+  actor: User,
   input: { name: string; identifier: string; purpose: VisitPurpose },
 ): ActionResult {
+  if (!canOperate(actor)) return { ok: false, message: "Only a lab assistant with rights can mark the register." };
   const name = clip(input.name, 80);
   const identifier = clip(input.identifier, 40);
   if (!name) return { ok: false, message: "Enter the person's name." };
@@ -450,7 +563,8 @@ export function signIn(
   return { ok: true, state: { ...state, attendance: [entry, ...state.attendance] } };
 }
 
-export function signOut(state: LabBoardState, attendanceId: string): ActionResult {
+export function signOut(state: LabBoardState, attendanceId: string, actor: User): ActionResult {
+  if (!canOperate(actor)) return { ok: false, message: "Only a lab assistant with rights can update the register." };
   const entry = state.attendance.find((item) => item.id === attendanceId);
   if (!entry) return { ok: false, message: "That attendance entry was not found." };
   if (entry.leftAt) return { ok: false, message: "This person has already signed out." };
@@ -464,7 +578,8 @@ export function signOut(state: LabBoardState, attendanceId: string): ActionResul
   };
 }
 
-export function addLab(state: LabBoardState, draft: LabDraft): ActionResult {
+export function addLab(state: LabBoardState, actor: User, draft: LabDraft): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can add a lab." };
   const name = clip(draft.name, 80);
   if (!name) return { ok: false, message: "Enter a lab name." };
   if (!isLabKind(draft.kind)) return { ok: false, message: "Choose the kind of lab." };
@@ -481,6 +596,7 @@ export function addLab(state: LabBoardState, draft: LabDraft): ActionResult {
     isOpen: false,
     openedAt: null,
     openedBy: null,
+    openedByUserId: null,
     openNote: "",
     equipment: [],
     software: [],
@@ -488,7 +604,8 @@ export function addLab(state: LabBoardState, draft: LabDraft): ActionResult {
   return { ok: true, state: { ...state, labs: [...state.labs, next] } };
 }
 
-export function updateLab(state: LabBoardState, labId: string, draft: LabDraft): ActionResult {
+export function updateLab(state: LabBoardState, labId: string, actor: User, draft: LabDraft): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can edit lab details." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   const name = clip(draft.name, 80);
@@ -514,19 +631,23 @@ export function updateLab(state: LabBoardState, labId: string, draft: LabDraft):
   };
 }
 
-export function removeLab(state: LabBoardState, labId: string): ActionResult {
+export function removeLab(state: LabBoardState, labId: string, actor: User): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can remove a lab." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   return {
     ok: true,
     state: {
+      ...state,
       labs: state.labs.filter((item) => item.id !== labId),
       attendance: state.attendance.filter((entry) => entry.labId !== labId),
+      notes: state.notes.filter((note) => note.labId !== labId),
     },
   };
 }
 
-export function addEquipment(state: LabBoardState, labId: string, draft: EquipmentDraft): ActionResult {
+export function addEquipment(state: LabBoardState, labId: string, actor: User, draft: EquipmentDraft): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can update equipment." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   const name = clip(draft.name, 80);
@@ -544,7 +665,8 @@ export function addEquipment(state: LabBoardState, labId: string, draft: Equipme
   return { ok: true, state: replaceLab(state, labId, { ...lab, equipment: [...lab.equipment, item] }) };
 }
 
-export function updateEquipment(state: LabBoardState, labId: string, equipmentId: string, draft: EquipmentDraft): ActionResult {
+export function updateEquipment(state: LabBoardState, labId: string, equipmentId: string, actor: User, draft: EquipmentDraft): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can update equipment." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   if (!lab.equipment.some((item) => item.id === equipmentId)) {
@@ -568,7 +690,8 @@ export function updateEquipment(state: LabBoardState, labId: string, equipmentId
   };
 }
 
-export function removeEquipment(state: LabBoardState, labId: string, equipmentId: string): ActionResult {
+export function removeEquipment(state: LabBoardState, labId: string, equipmentId: string, actor: User): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can update equipment." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   return {
@@ -577,7 +700,8 @@ export function removeEquipment(state: LabBoardState, labId: string, equipmentId
   };
 }
 
-export function addSoftware(state: LabBoardState, labId: string, draft: SoftwareDraft): ActionResult {
+export function addSoftware(state: LabBoardState, labId: string, actor: User, draft: SoftwareDraft): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can update software." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   const name = clip(draft.name, 80);
@@ -591,7 +715,8 @@ export function addSoftware(state: LabBoardState, labId: string, draft: Software
   return { ok: true, state: replaceLab(state, labId, { ...lab, software: [...lab.software, item] }) };
 }
 
-export function updateSoftware(state: LabBoardState, labId: string, softwareId: string, draft: SoftwareDraft): ActionResult {
+export function updateSoftware(state: LabBoardState, labId: string, softwareId: string, actor: User, draft: SoftwareDraft): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can update software." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   if (!lab.software.some((item) => item.id === softwareId)) {
@@ -617,11 +742,128 @@ export function updateSoftware(state: LabBoardState, labId: string, softwareId: 
   };
 }
 
-export function removeSoftware(state: LabBoardState, labId: string, softwareId: string): ActionResult {
+export function removeSoftware(state: LabBoardState, labId: string, softwareId: string, actor: User): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can update software." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   return {
     ok: true,
     state: replaceLab(state, labId, { ...lab, software: lab.software.filter((item) => item.id !== softwareId) }),
+  };
+}
+
+function usernameOk(value: string) {
+  return /^[a-z0-9._-]{3,24}$/.test(value);
+}
+
+function activeAdmins(users: User[]) {
+  return users.filter((user) => user.role === "admin" && user.active);
+}
+
+export function createUser(state: LabBoardState, actor: User | null, draft: UserDraft): ActionResult {
+  const firstAccount = state.users.length === 0;
+  if (!firstAccount && !isAdmin(actor)) return { ok: false, message: "Only an admin can add people." };
+  if (firstAccount && draft.role !== "admin") return { ok: false, message: "The first account must be an admin." };
+  const name = clip(draft.name, 80);
+  const username = clip(draft.username, 24).toLowerCase();
+  if (!name) return { ok: false, message: "Enter the person's name." };
+  if (!usernameOk(username)) return { ok: false, message: "Username must be 3–24 letters, numbers, dots, or hyphens." };
+  if (!draft.passwordHash) return { ok: false, message: "Enter a password." };
+  if (state.users.some((user) => user.username === username)) {
+    return { ok: false, message: "That username is already in use." };
+  }
+  const user: User = {
+    id: crypto.randomUUID(),
+    name,
+    username,
+    passwordHash: draft.passwordHash,
+    role: firstAccount ? "admin" : draft.role,
+    active: true,
+    canOperateLabs: firstAccount ? false : draft.role === "assistant" && draft.canOperateLabs,
+  };
+  return { ok: true, state: { ...state, users: [...state.users, user] } };
+}
+
+export function updateUserAccess(
+  state: LabBoardState,
+  actor: User,
+  userId: string,
+  patch: { active?: boolean; canOperateLabs?: boolean; role?: Role },
+): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can change access." };
+  const target = state.users.find((user) => user.id === userId);
+  if (!target) return { ok: false, message: "That person was not found." };
+  const nextActive = patch.active ?? target.active;
+  const nextRole = patch.role ?? target.role;
+  if (target.role === "admin" && target.active && (!nextActive || nextRole !== "admin") && activeAdmins(state.users).length <= 1) {
+    return { ok: false, message: "Keep at least one active admin account." };
+  }
+  return {
+    ok: true,
+    state: {
+      ...state,
+      users: state.users.map((user) =>
+        user.id === userId
+          ? {
+              ...user,
+              active: nextActive,
+              role: nextRole,
+              canOperateLabs: nextRole === "assistant" ? (patch.canOperateLabs ?? user.canOperateLabs) : false,
+            }
+          : user,
+      ),
+    },
+  };
+}
+
+export function resetPassword(state: LabBoardState, actor: User, userId: string, passwordHash: string): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can reset a password." };
+  if (!state.users.some((user) => user.id === userId)) return { ok: false, message: "That person was not found." };
+  if (!passwordHash) return { ok: false, message: "Enter a new password." };
+  return {
+    ok: true,
+    state: {
+      ...state,
+      users: state.users.map((user) => (user.id === userId ? { ...user, passwordHash } : user)),
+    },
+  };
+}
+
+export function findUser(state: LabBoardState, username: string, passwordHash: string) {
+  const key = username.trim().toLowerCase();
+  return state.users.find((user) => user.username === key && user.passwordHash === passwordHash && user.active) ?? null;
+}
+
+export function submitNote(state: LabBoardState, actor: User, labId: string, kind: NoteKind, message: string): ActionResult {
+  if (!canOperate(actor)) return { ok: false, message: "Only a lab assistant with rights can send a note to the admin." };
+  const lab = requireLab(state, labId);
+  if (isFailure(lab)) return lab;
+  const text = clip(message, 500);
+  if (!text) return { ok: false, message: "Write what needs attention." };
+  if (kind !== "maintenance" && kind !== "missing" && kind !== "other") {
+    return { ok: false, message: "Choose what the note is about." };
+  }
+  const note: MaintenanceNote = {
+    id: crypto.randomUUID(),
+    labId,
+    authorId: actor.id,
+    authorName: actor.name,
+    kind,
+    message: text,
+    createdAt: new Date().toISOString(),
+    status: "open",
+  };
+  return { ok: true, state: { ...state, notes: [note, ...state.notes] } };
+}
+
+export function resolveNote(state: LabBoardState, actor: User, noteId: string): ActionResult {
+  if (!isAdmin(actor)) return { ok: false, message: "Only an admin can mark a note as handled." };
+  if (!state.notes.some((note) => note.id === noteId)) return { ok: false, message: "That note was not found." };
+  return {
+    ok: true,
+    state: {
+      ...state,
+      notes: state.notes.map((note) => (note.id === noteId ? { ...note, status: "resolved" } : note)),
+    },
   };
 }

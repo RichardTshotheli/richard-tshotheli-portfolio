@@ -1,10 +1,12 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
-import { AddLabForm, LabStatusBadge } from "@/components/lab-board/lab-panels";
+import { controlClass, Field, FormMessage, Panel } from "@/components/lab-board/field";
 import { useLabStore } from "@/components/lab-board/lab-store";
 import { Button } from "@/components/ui/button";
-import { KIND_LABELS, peopleInside, sortedLabs } from "@/lib/lab-board";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { KIND_LABELS, LAB_KINDS, isAdmin, peopleInside, sortedLabs, type LabKind } from "@/lib/lab-board";
 
 export const Route = createFileRoute("/labs/")({
   component: LabsPage,
@@ -13,92 +15,170 @@ export const Route = createFileRoute("/labs/")({
 function LabsPage() {
   const store = useLabStore();
   const [adding, setAdding] = useState(false);
+  const state = store.state;
+  const user = store.currentUser;
+  if (!state || !user) return null;
 
-  if (!store.ready || !store.state) {
-    return <p className="mx-auto max-w-6xl px-5 py-16 text-portfolio-mist sm:px-8">Loading the laboratory board…</p>;
-  }
-
-  const labs = sortedLabs(store.state.labs);
-  const openCount = labs.filter((lab) => lab.isOpen).length;
-  const insideCount = store.state.attendance.filter((entry) => entry.leftAt === null).length;
+  const labs = sortedLabs(state.labs);
+  const openLabs = labs.filter((lab) => lab.isOpen);
+  const students = state.attendance.filter((entry) => entry.leftAt === null).length;
+  const onDuty = openLabs.length;
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
-      <p className="max-w-2xl text-lg leading-relaxed text-portfolio-mist">
-        Open a lab when people need to use it, register attendance as they enter, and update the equipment and software in each lab.
-      </p>
-
-      <dl className="mt-8 grid gap-4 sm:grid-cols-3">
-        <Stat label="Labs" value={String(labs.length)} />
-        <Stat label="Open now" value={String(openCount)} />
-        <Stat label="People inside" value={String(insideCount)} />
-      </dl>
-
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl font-semibold">Labs</h1>
-        {adding ? null : (
-          <Button type="button" onClick={() => setAdding(true)}>
-            Add a lab
+    <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-4xl font-semibold">Labs</h1>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            {isAdmin(user)
+              ? "See who is on duty, how many students are inside, and keep equipment up to date."
+              : user.canOperateLabs
+                ? "Open a lab when you are on duty, then mark the students who come in."
+                : "Your account does not have rights to open labs yet. Ask an admin to grant them."}
+          </p>
+        </div>
+        {isAdmin(user) ? (
+          <Button type="button" onClick={() => setAdding((value) => !value)}>
+            {adding ? "Close form" : "Add a lab"}
           </Button>
-        )}
+        ) : null}
       </div>
 
-      {adding ? (
-        <div className="mt-5">
+      <dl className="mt-6 grid gap-3 sm:grid-cols-3">
+        <Stat label="Open labs" value={String(openLabs.length)} tone="open" />
+        <Stat label="Assistants on duty" value={String(onDuty)} tone="duty" />
+        <Stat label="Students inside" value={String(students)} tone="count" />
+      </dl>
+
+      {adding && isAdmin(user) ? (
+        <div className="mt-6">
           <AddLabForm onDone={() => setAdding(false)} />
         </div>
       ) : null}
 
-      {labs.length === 0 ? (
-        <p className="mt-8 text-portfolio-mist">No labs yet. Add the first lab to start opening sessions and registering attendance.</p>
-      ) : (
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-          {labs.map((lab) => {
-            const inside = peopleInside(store.state?.attendance ?? [], lab.id).length;
-            return (
-              <article
-                key={lab.id}
-                className={`flex flex-col border border-portfolio-line bg-portfolio-surface p-6 ${lab.isOpen ? "border-l-4 border-l-portfolio-teal" : "border-l-4 border-l-portfolio-line"}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-portfolio-teal">{KIND_LABELS[lab.kind]}</p>
-                  <LabStatusBadge open={lab.isOpen} />
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        {labs.map((lab) => {
+          const inside = peopleInside(state.attendance, lab.id).length;
+          return (
+            <article
+              key={lab.id}
+              className={`rounded-2xl border bg-card p-5 shadow-sm ${lab.isOpen ? "border-emerald-200" : "border-border"}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{KIND_LABELS[lab.kind]}</p>
+                <Status open={lab.isOpen} />
+              </div>
+              <h2 className="mt-3 font-display text-2xl font-semibold">{lab.name}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {lab.code ? `${lab.code} · ` : ""}
+                {lab.location}
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-[var(--lab-mint)] px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Students</p>
+                  <p className="mt-1 text-2xl font-semibold text-emerald-950">
+                    {inside}
+                    <span className="text-sm font-medium text-emerald-800"> / {lab.capacity}</span>
+                  </p>
                 </div>
-                <h2 className="mt-3 font-display text-2xl font-semibold">{lab.name}</h2>
-                <p className="mt-1 text-sm text-portfolio-mist">
-                  {lab.code ? `${lab.code} · ` : ""}
-                  {lab.location}
-                </p>
-                {lab.description ? <p className="mt-3 leading-relaxed text-foreground/85">{lab.description}</p> : null}
-                {lab.isOpen && lab.openNote ? <p className="mt-3 text-sm leading-relaxed">{lab.openNote}</p> : null}
-                <p className="mt-4 text-sm font-medium">
-                  {inside} of {lab.capacity} inside · {lab.equipment.length} equipment · {lab.software.length} software
-                </p>
-                <div className="mt-5">
-                  <Button asChild>
-                    <Link to="/labs/$labId" params={{ labId: lab.id }}>
-                      {lab.isOpen ? "Register attendance" : "Open or update"}
-                    </Link>
-                  </Button>
+                <div className="rounded-xl bg-secondary px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">On duty</p>
+                  <p className="mt-1 font-medium">{lab.isOpen ? lab.openedBy || "Assistant" : "No one"}</p>
                 </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
-
-      <p className="mt-10 text-sm text-portfolio-mist">
-        The register, open notes, equipment, and software are saved in this browser, so the board stays on the computer used at the lab.
-      </p>
+              </div>
+              {lab.isOpen && lab.openNote ? <p className="mt-3 text-sm leading-relaxed">{lab.openNote}</p> : null}
+              <Button className="mt-4" asChild>
+                <Link to="/labs/$labId" params={{ labId: lab.id }}>
+                  {user.canOperateLabs ? (lab.isOpen ? "Register and duty" : "Open this lab") : "View lab"}
+                </Link>
+              </Button>
+            </article>
+          );
+        })}
+      </div>
     </main>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Status({ open }: { open: boolean }) {
   return (
-    <div className="border border-portfolio-line bg-portfolio-surface px-5 py-4">
-      <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-portfolio-mist">{label}</dt>
-      <dd className="mt-1 font-display text-3xl font-semibold">{value}</dd>
+    <span
+      className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${open ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}
+    >
+      {open ? "Open" : "Closed"}
+    </span>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string; tone: "open" | "duty" | "count" }) {
+  const toneClass = tone === "open" ? "bg-emerald-50" : tone === "duty" ? "bg-amber-50" : "bg-sky-50";
+  return (
+    <div className={`rounded-2xl border border-white/70 px-5 py-4 shadow-sm ${toneClass}`}>
+      <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</dt>
+      <dd className="mt-1 font-display text-4xl font-semibold">{value}</dd>
     </div>
+  );
+}
+
+function AddLabForm({ onDone }: { onDone: () => void }) {
+  const store = useLabStore();
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [location, setLocation] = useState("");
+  const [kind, setKind] = useState<LabKind>("computer");
+  const [capacity, setCapacity] = useState(20);
+  const [description, setDescription] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+
+  function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    const result = store.addLab({ name, code, location, kind, capacity, description });
+    if (!result.ok) {
+      setMessage(result.message);
+      return;
+    }
+    onDone();
+  }
+
+  return (
+    <Panel title="Add a lab">
+      <form noValidate className="grid gap-4" onSubmit={onSubmit}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Name" htmlFor="new-lab-name">
+            <Input id="new-lab-name" value={name} onChange={(event) => setName(event.target.value)} />
+          </Field>
+          <Field label="Code" htmlFor="new-lab-code">
+            <Input id="new-lab-code" value={code} onChange={(event) => setCode(event.target.value)} />
+          </Field>
+        </div>
+        <Field label="Location" htmlFor="new-lab-location">
+          <Input id="new-lab-location" value={location} onChange={(event) => setLocation(event.target.value)} />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Kind" htmlFor="new-lab-kind">
+            <select id="new-lab-kind" className={controlClass} value={kind} onChange={(event) => setKind(event.target.value as LabKind)}>
+              {LAB_KINDS.map((item) => (
+                <option key={item} value={item}>
+                  {KIND_LABELS[item]}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Capacity" htmlFor="new-lab-capacity">
+            <Input id="new-lab-capacity" type="number" min={1} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} />
+          </Field>
+        </div>
+        <Field label="Description" htmlFor="new-lab-description">
+          <Textarea id="new-lab-description" value={description} onChange={(event) => setDescription(event.target.value)} />
+        </Field>
+        <div className="flex gap-2">
+          <Button type="submit">Save lab</Button>
+          <Button type="button" variant="ghost" onClick={onDone}>
+            Cancel
+          </Button>
+        </div>
+        <FormMessage message={message} />
+      </form>
+    </Panel>
   );
 }
