@@ -69,6 +69,7 @@ function LabsFrame() {
           <NavLink to="/labs" label="Labs" />
           <NavLink to="/labs/notes" label={user.role === "admin" ? `Notes (${openNotes})` : "Notes"} />
           {user.role === "admin" ? <NavLink to="/labs/people" label="People" /> : null}
+          {user.role === "admin" ? <NavLink to="/labs/settings" label="Settings" /> : null}
         </div>
         </nav>
       </header>
@@ -77,7 +78,7 @@ function LabsFrame() {
   );
 }
 
-function NavLink({ to, label }: { to: "/labs" | "/labs/notes" | "/labs/people"; label: string }) {
+function NavLink({ to, label }: { to: "/labs" | "/labs/notes" | "/labs/people" | "/labs/settings"; label: string }) {
   return (
     <Link
       to={to}

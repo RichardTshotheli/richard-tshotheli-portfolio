@@ -3,7 +3,6 @@ import { useState, type FormEvent } from "react";
 
 import { Field, FormMessage, Panel } from "@/components/lab-board/field";
 import { useLabStore } from "@/components/lab-board/lab-store";
-import { LoginQr } from "@/components/lab-board/login-qr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isAdmin, type Role } from "@/lib/lab-board";
@@ -61,9 +60,6 @@ function PeoplePage() {
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">This is the account you are using.</p>
             )}
-            <div className="mt-4 border-t border-border pt-4">
-              <LoginQr number={person.username} size={112} />
-            </div>
           </article>
         ))}
       </section>

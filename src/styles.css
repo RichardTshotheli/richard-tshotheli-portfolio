@@ -102,6 +102,10 @@
     var(--background);
 }
 
+.lab-app.lab-auth {
+  background: var(--lab-header);
+}
+
 @layer base {
   * { border-color: var(--color-border); }
   html { scroll-behavior: smooth; }

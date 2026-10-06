@@ -15,6 +15,7 @@ import { Route as LabsIndexRouteImport } from './routes/labs/index'
 import { Route as LabsLabIdRouteImport } from './routes/labs/$labId'
 import { Route as LabsNotesRouteImport } from './routes/labs/notes'
 import { Route as LabsPeopleRouteImport } from './routes/labs/people'
+import { Route as LabsSettingsRouteImport } from './routes/labs/settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const LabsPeopleRoute = LabsPeopleRouteImport.update({
   path: '/people',
   getParentRoute: () => LabsRoute,
 } as any)
+const LabsSettingsRoute = LabsSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => LabsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/labs/$labId': typeof LabsLabIdRoute
   '/labs/notes': typeof LabsNotesRoute
   '/labs/people': typeof LabsPeopleRoute
+  '/labs/settings': typeof LabsSettingsRoute
   '/labs/': typeof LabsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/labs/$labId': typeof LabsLabIdRoute
   '/labs/notes': typeof LabsNotesRoute
   '/labs/people': typeof LabsPeopleRoute
+  '/labs/settings': typeof LabsSettingsRoute
   '/labs': typeof LabsIndexRoute
 }
 export interface FileRoutesById {
@@ -69,14 +77,27 @@ export interface FileRoutesById {
   '/labs/$labId': typeof LabsLabIdRoute
   '/labs/notes': typeof LabsNotesRoute
   '/labs/people': typeof LabsPeopleRoute
+  '/labs/settings': typeof LabsSettingsRoute
   '/labs/': typeof LabsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/labs' | '/labs/$labId' | '/labs/notes' | '/labs/people' | '/labs/'
+    | '/'
+    | '/labs'
+    | '/labs/$labId'
+    | '/labs/notes'
+    | '/labs/people'
+    | '/labs/settings'
+    | '/labs/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/labs/$labId' | '/labs/notes' | '/labs/people' | '/labs'
+  to:
+    | '/'
+    | '/labs/$labId'
+    | '/labs/notes'
+    | '/labs/people'
+    | '/labs/settings'
+    | '/labs'
   id:
     | '__root__'
     | '/'
@@ -84,6 +105,7 @@ export interface FileRouteTypes {
     | '/labs/$labId'
     | '/labs/notes'
     | '/labs/people'
+    | '/labs/settings'
     | '/labs/'
   fileRoutesById: FileRoutesById
 }
@@ -136,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabsPeopleRouteImport
       parentRoute: typeof LabsRoute
     }
+    '/labs/settings': {
+      id: '/labs/settings'
+      path: '/settings'
+      fullPath: '/labs/settings'
+      preLoaderRoute: typeof LabsSettingsRouteImport
+      parentRoute: typeof LabsRoute
+    }
   }
 }
 
@@ -143,6 +172,7 @@ interface LabsRouteChildren {
   LabsLabIdRoute: typeof LabsLabIdRoute
   LabsNotesRoute: typeof LabsNotesRoute
   LabsPeopleRoute: typeof LabsPeopleRoute
+  LabsSettingsRoute: typeof LabsSettingsRoute
   LabsIndexRoute: typeof LabsIndexRoute
 }
 
@@ -150,6 +180,7 @@ const LabsRouteChildren: LabsRouteChildren = {
   LabsLabIdRoute: LabsLabIdRoute,
   LabsNotesRoute: LabsNotesRoute,
   LabsPeopleRoute: LabsPeopleRoute,
+  LabsSettingsRoute: LabsSettingsRoute,
   LabsIndexRoute: LabsIndexRoute,
 }
 
