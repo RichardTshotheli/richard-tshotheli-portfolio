@@ -13,6 +13,7 @@ import {
   PURPOSE_LABELS,
   VISIT_PURPOSES,
   canOperate,
+  canSeeOccupancy,
   formatWhen,
   isAdmin,
   isSameLocalDay,
@@ -33,19 +34,24 @@ export function LabWorkspace({ lab }: { lab: Lab }) {
   const inside = peopleInside(state.attendance, lab.id);
   const operate = canOperate(user);
   const admin = isAdmin(user);
+  const showCounts = canSeeOccupancy(user);
 
   return (
     <div className="grid gap-5">
-      <section className={`rounded-3xl p-6 text-white shadow-sm ${lab.isOpen ? "bg-emerald-700" : "bg-[var(--lab-header)]"}`}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80">{lab.isOpen ? "Lab is open" : "Lab is closed"}</p>
+      <section className={`rounded-3xl p-6 text-white shadow-sm ${lab.isOpen ? "bg-emerald-600" : "bg-red-700"}`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80">{lab.isOpen ? "Open" : "Closed"}</p>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="font-display text-5xl font-semibold leading-none">{inside.length}</p>
-            <p className="mt-2 text-sm text-white/85">students inside · capacity {lab.capacity}</p>
-          </div>
+          {showCounts ? (
+            <div>
+              <p className="font-display text-5xl font-semibold leading-none">{inside.length}</p>
+              <p className="mt-2 text-sm text-white/85">students inside · capacity {lab.capacity}</p>
+            </div>
+          ) : (
+            <p className="font-display text-4xl font-semibold">{lab.isOpen ? "Lab is open" : "Lab is closed"}</p>
+          )}
           <div className="rounded-2xl bg-white/15 px-4 py-3 text-sm">
-            <p className="text-xs uppercase tracking-wide text-white/75">Assistant on duty</p>
-            <p className="mt-1 text-lg font-semibold">{lab.isOpen ? lab.openedBy : "No one yet"}</p>
+            <p className="text-xs uppercase tracking-wide text-white/75">Opened by</p>
+            <p className="mt-1 text-lg font-semibold">{lab.isOpen ? lab.openedBy || "Assistant" : "No one"}</p>
             {lab.openedAt ? <p className="text-white/80">Since {formatWhen(lab.openedAt)}</p> : null}
           </div>
         </div>
@@ -54,7 +60,7 @@ export function LabWorkspace({ lab }: { lab: Lab }) {
 
       {operate ? <DutyPanel lab={lab} /> : null}
 
-      <RegisterPanel lab={lab} canEdit={operate} />
+      {showCounts ? <RegisterPanel lab={lab} canEdit={operate} /> : null}
       <InventorySection lab={lab} canEdit={admin} />
       {operate ? <NoteComposer labId={lab.id} /> : null}
     </div>

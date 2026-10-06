@@ -33,7 +33,9 @@ function PeoplePage() {
                 <p className="text-sm text-muted-foreground">Student or staff number {person.username}</p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                <span className="rounded-full bg-secondary px-2 py-1">{person.role === "admin" ? "Admin" : "Lab assistant"}</span>
+                <span className="rounded-full bg-secondary px-2 py-1">
+                  {person.role === "admin" ? "Admin" : person.role === "student" ? "Student" : "Lab assistant"}
+                </span>
                 {person.role === "assistant" && person.canOperateLabs ? (
                   <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-800">Can open labs</span>
                 ) : null}
@@ -113,6 +115,7 @@ function AddPerson() {
         <Field label="Role" htmlFor="person-role">
           <select id="person-role" className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm" value={role} onChange={(event) => setRole(event.target.value as Role)}>
             <option value="assistant">Lab assistant</option>
+            <option value="student">Student</option>
             <option value="admin">Admin</option>
           </select>
         </Field>

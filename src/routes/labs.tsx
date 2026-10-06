@@ -38,7 +38,7 @@ function LabsFrame() {
 
   const user = store.currentUser;
   const openNotes = store.state.notes.filter((note) => note.status === "open").length;
-  const roleLabel = user.role === "admin" ? "Admin" : user.canOperateLabs ? "Lab assistant" : "No lab rights";
+  const roleLabel = user.role === "admin" ? "Admin" : user.role === "student" ? "Student" : user.canOperateLabs ? "Lab assistant" : "No lab rights";
 
   return (
     <div className="lab-app min-h-screen">
@@ -67,7 +67,7 @@ function LabsFrame() {
         <nav className="bg-[var(--lab-header)]" aria-label="Laboratory">
         <div className="mx-auto flex max-w-6xl gap-2 px-5 py-3 sm:px-8">
           <NavLink to="/labs" label="Labs" />
-          <NavLink to="/labs/notes" label={user.role === "admin" ? `Notes (${openNotes})` : "Notes"} />
+          {user.role !== "student" ? <NavLink to="/labs/notes" label={user.role === "admin" ? `Notes (${openNotes})` : "Notes"} /> : null}
           {user.role === "admin" ? <NavLink to="/labs/people" label="People" /> : null}
           {user.role === "admin" ? <NavLink to="/labs/settings" label="Settings" /> : null}
         </div>

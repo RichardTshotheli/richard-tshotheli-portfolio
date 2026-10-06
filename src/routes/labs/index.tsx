@@ -6,7 +6,7 @@ import { useLabStore } from "@/components/lab-board/lab-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { KIND_LABELS, LAB_KINDS, isAdmin, peopleInside, sortedLabs, type LabKind } from "@/lib/lab-board";
+import { KIND_LABELS, LAB_KINDS, canSeeOccupancy, isAdmin, peopleInside, sortedLabs, type LabKind } from "@/lib/lab-board";
 
 export const Route = createFileRoute("/labs/")({
   component: LabsPage,
@@ -23,6 +23,7 @@ function LabsPage() {
   const openLabs = labs.filter((lab) => lab.isOpen);
   const students = state.attendance.filter((entry) => entry.leftAt === null).length;
   const onDuty = openLabs.length;
+  const showCounts = canSeeOccupancy(user);
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
@@ -37,11 +38,13 @@ function LabsPage() {
         ) : null}
       </div>
 
-      <dl className="mt-6 grid gap-3 sm:grid-cols-3">
-        <Stat label="Open labs" value={String(openLabs.length)} tone="open" />
-        <Stat label="Assistants on duty" value={String(onDuty)} tone="duty" />
-        <Stat label="Students inside" value={String(students)} tone="count" />
-      </dl>
+      {showCounts ? (
+        <dl className="mt-6 grid gap-3 sm:grid-cols-3">
+          <Stat label="Open labs" value={String(openLabs.length)} tone="open" />
+          <Stat label="Assistants on duty" value={String(onDuty)} tone="duty" />
+          <Stat label="Students inside" value={String(students)} tone="count" />
+        </dl>
+      ) : null}
 
       {adding && isAdmin(user) ? (
         <div className="mt-6">
@@ -55,7 +58,7 @@ function LabsPage() {
           return (
             <article
               key={lab.id}
-              className={`rounded-2xl border bg-card p-5 shadow-sm ${lab.isOpen ? "border-emerald-200" : "border-border"}`}
+              className={`rounded-2xl border p-5 shadow-sm ${lab.isOpen ? "border-emerald-600 bg-emerald-50" : "border-red-600 bg-red-50"}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{KIND_LABELS[lab.kind]}</p>
@@ -66,17 +69,19 @@ function LabsPage() {
                 {lab.code ? `${lab.code} · ` : ""}
                 {lab.location}
               </p>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-[var(--lab-mint)] px-3 py-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Students</p>
-                  <p className="mt-1 text-2xl font-semibold text-emerald-950">
-                    {inside}
-                    <span className="text-sm font-medium text-emerald-800"> / {lab.capacity}</span>
-                  </p>
-                </div>
-                <div className="rounded-xl bg-secondary px-3 py-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">On duty</p>
-                  <p className="mt-1 font-medium">{lab.isOpen ? lab.openedBy || "Assistant" : "No one"}</p>
+              <div className={`mt-4 grid gap-3 ${showCounts ? "grid-cols-2" : ""}`}>
+                {showCounts ? (
+                  <div className="rounded-xl bg-white/80 px-3 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Students</p>
+                    <p className="mt-1 text-2xl font-semibold text-emerald-950">
+                      {inside}
+                      <span className="text-sm font-medium text-emerald-800"> / {lab.capacity}</span>
+                    </p>
+                  </div>
+                ) : null}
+                <div className="rounded-xl bg-white/80 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Opened by</p>
+                  <p className="mt-1 font-medium">{lab.isOpen ? lab.openedBy || "Assistant" : "Closed"}</p>
                 </div>
               </div>
               {lab.isOpen && lab.openNote ? <p className="mt-3 text-sm leading-relaxed">{lab.openNote}</p> : null}
@@ -96,7 +101,7 @@ function LabsPage() {
 function Status({ open }: { open: boolean }) {
   return (
     <span
-      className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${open ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}
+      className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${open ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}
     >
       {open ? "Open" : "Closed"}
     </span>

@@ -26,7 +26,20 @@ export type SoftwareItem = {
   installedOn: string;
 };
 
-export type Role = "admin" | "assistant";
+export type Role = "admin" | "assistant" | "student";
+
+export type HistoryKind = "opened" | "closed" | "taken-over" | "updated";
+
+export type LabHistoryEntry = {
+  id: string;
+  labId: string;
+  labName: string;
+  kind: HistoryKind;
+  at: string;
+  actorId: string;
+  actorName: string;
+  detail: string;
+};
 
 export type User = {
   id: string;
@@ -83,6 +96,7 @@ export type LabBoardState = {
   attendance: AttendanceEntry[];
   users: User[];
   notes: MaintenanceNote[];
+  history: LabHistoryEntry[];
 };
 
 export type UserDraft = {
@@ -154,6 +168,10 @@ export function isAdmin(user: User | null | undefined) {
   return Boolean(user && user.active && user.role === "admin");
 }
 
+export function canSeeOccupancy(user: User | null | undefined) {
+  return isAdmin(user) || canOperate(user);
+}
+
 function equipment(id: string, name: string, quantity: number, condition: EquipmentCondition, notes = ""): Equipment {
   return { id, name, quantity, condition, notes };
 }
@@ -171,6 +189,7 @@ export function seedLabBoard(): LabBoardState {
     attendance: [],
     users: [],
     notes: [],
+    history: [],
     labs: [
       lab({
         id: "cse-computer-a",
@@ -353,7 +372,7 @@ function asAttendance(value: unknown): AttendanceEntry | null {
 function asUser(value: unknown): User | null {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.name !== "string") return null;
   if (typeof value.username !== "string" || typeof value.passwordHash !== "string") return null;
-  if (value.role !== "admin" && value.role !== "assistant") return null;
+  if (value.role !== "admin" && value.role !== "assistant" && value.role !== "student") return null;
   return {
     id: value.id,
     name: value.name,
@@ -382,6 +401,22 @@ function asNote(value: unknown): MaintenanceNote | null {
   };
 }
 
+function asHistory(value: unknown): LabHistoryEntry | null {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.labId !== "string" || typeof value.labName !== "string") return null;
+  if (value.kind !== "opened" && value.kind !== "closed" && value.kind !== "taken-over" && value.kind !== "updated") return null;
+  if (typeof value.at !== "string" || typeof value.actorId !== "string" || typeof value.actorName !== "string") return null;
+  return {
+    id: value.id,
+    labId: value.labId,
+    labName: value.labName,
+    kind: value.kind,
+    at: value.at,
+    actorId: value.actorId,
+    actorName: value.actorName,
+    detail: typeof value.detail === "string" ? value.detail : "",
+  };
+}
+
 export function loadLabBoard(): LabBoardState {
   if (typeof window === "undefined") return seedLabBoard();
   try {
@@ -396,7 +431,8 @@ export function loadLabBoard(): LabBoardState {
       : [];
     const users = Array.isArray(parsed.users) ? parsed.users.map(asUser).filter((item) => item !== null) : [];
     const notes = Array.isArray(parsed.notes) ? parsed.notes.map(asNote).filter((item) => item !== null) : [];
-    return { labs, attendance, users, notes };
+    const history = Array.isArray(parsed.history) ? parsed.history.map(asHistory).filter((item) => item !== null) : [];
+    return { labs, attendance, users, notes, history };
   } catch {
     return seedLabBoard();
   }
@@ -454,21 +490,37 @@ function replaceLab(state: LabBoardState, labId: string, next: Lab): LabBoardSta
   return { ...state, labs: state.labs.map((item) => (item.id === labId ? next : item)) };
 }
 
+function record(state: LabBoardState, entry: Omit<LabHistoryEntry, "id" | "at">): LabBoardState {
+  const item: LabHistoryEntry = { ...entry, id: crypto.randomUUID(), at: new Date().toISOString() };
+  return { ...state, history: [item, ...state.history] };
+}
+
 export function openLab(state: LabBoardState, labId: string, actor: User, note: string): ActionResult {
   if (!canOperate(actor)) return { ok: false, message: "Only a lab assistant with rights can open a lab." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
   if (lab.isOpen) return { ok: false, message: "This lab is already open." };
+  const openNote = clip(note, 400);
   return {
     ok: true,
-    state: replaceLab(state, labId, {
-      ...lab,
-      isOpen: true,
-      openedAt: new Date().toISOString(),
-      openedBy: actor.name,
-      openedByUserId: actor.id,
-      openNote: clip(note, 400),
-    }),
+    state: record(
+      replaceLab(state, labId, {
+        ...lab,
+        isOpen: true,
+        openedAt: new Date().toISOString(),
+        openedBy: actor.name,
+        openedByUserId: actor.id,
+        openNote,
+      }),
+      {
+        labId,
+        labName: lab.name,
+        kind: "opened",
+        actorId: actor.id,
+        actorName: actor.name,
+        detail: openNote || "Opened the lab",
+      },
+    ),
   };
 }
 
@@ -480,12 +532,22 @@ export function takeOverLab(state: LabBoardState, labId: string, actor: User): A
   if (lab.openedByUserId === actor.id) return { ok: false, message: "You are already on duty in this lab." };
   return {
     ok: true,
-    state: replaceLab(state, labId, {
-      ...lab,
-      openedAt: new Date().toISOString(),
-      openedBy: actor.name,
-      openedByUserId: actor.id,
-    }),
+    state: record(
+      replaceLab(state, labId, {
+        ...lab,
+        openedAt: new Date().toISOString(),
+        openedBy: actor.name,
+        openedByUserId: actor.id,
+      }),
+      {
+        labId,
+        labName: lab.name,
+        kind: "taken-over",
+        actorId: actor.id,
+        actorName: actor.name,
+        detail: lab.openedBy ? `Took over from ${lab.openedBy}` : "Took over the lab",
+      },
+    ),
   };
 }
 
@@ -509,19 +571,27 @@ export function closeLab(state: LabBoardState, labId: string, actor: User): Acti
   if (isFailure(lab)) return lab;
   if (!lab.isOpen) return { ok: false, message: "This lab is already closed." };
   const now = new Date().toISOString();
+  const closed = {
+    ...state,
+    labs: state.labs.map((item) =>
+      item.id === labId
+        ? { ...item, isOpen: false, openedAt: null, openedBy: null, openedByUserId: null, openNote: "" }
+        : item,
+    ),
+    attendance: state.attendance.map((entry) =>
+      entry.labId === labId && entry.leftAt === null ? { ...entry, leftAt: now } : entry,
+    ),
+  };
   return {
     ok: true,
-    state: {
-      ...state,
-      labs: state.labs.map((item) =>
-        item.id === labId
-          ? { ...item, isOpen: false, openedAt: null, openedBy: null, openedByUserId: null, openNote: "" }
-          : item,
-      ),
-      attendance: state.attendance.map((entry) =>
-        entry.labId === labId && entry.leftAt === null ? { ...entry, leftAt: now } : entry,
-      ),
-    },
+    state: record(closed, {
+      labId,
+      labName: lab.name,
+      kind: "closed",
+      actorId: actor.id,
+      actorName: actor.name,
+      detail: lab.openedBy ? `Closed the lab opened by ${lab.openedBy}` : "Closed the lab",
+    }),
   };
 }
 
@@ -560,7 +630,17 @@ export function signIn(
     enteredAt: new Date().toISOString(),
     leftAt: null,
   };
-  return { ok: true, state: { ...state, attendance: [entry, ...state.attendance] } };
+  return {
+    ok: true,
+    state: record({ ...state, attendance: [entry, ...state.attendance] }, {
+      labId,
+      labName: lab.name,
+      kind: "updated",
+      actorId: actor.id,
+      actorName: actor.name,
+      detail: `Register: ${name} (${identifier}) entered`,
+    }),
+  };
 }
 
 export function signOut(state: LabBoardState, attendanceId: string, actor: User): ActionResult {
@@ -569,12 +649,23 @@ export function signOut(state: LabBoardState, attendanceId: string, actor: User)
   if (!entry) return { ok: false, message: "That attendance entry was not found." };
   if (entry.leftAt) return { ok: false, message: "This person has already signed out." };
   const now = new Date().toISOString();
+  const labName = state.labs.find((item) => item.id === entry.labId)?.name ?? "Lab";
   return {
     ok: true,
-    state: {
-      ...state,
-      attendance: state.attendance.map((item) => (item.id === attendanceId ? { ...item, leftAt: now } : item)),
-    },
+    state: record(
+      {
+        ...state,
+        attendance: state.attendance.map((item) => (item.id === attendanceId ? { ...item, leftAt: now } : item)),
+      },
+      {
+        labId: entry.labId,
+        labName,
+        kind: "updated",
+        actorId: actor.id,
+        actorName: actor.name,
+        detail: `Register: ${entry.name} (${entry.identifier}) signed out`,
+      },
+    ),
   };
 }
 
@@ -601,7 +692,17 @@ export function addLab(state: LabBoardState, actor: User, draft: LabDraft): Acti
     equipment: [],
     software: [],
   };
-  return { ok: true, state: { ...state, labs: [...state.labs, next] } };
+  return {
+    ok: true,
+    state: record({ ...state, labs: [...state.labs, next] }, {
+      labId: next.id,
+      labName: name,
+      kind: "updated",
+      actorId: actor.id,
+      actorName: actor.name,
+      detail: `Added the lab with capacity ${capacity}`,
+    }),
+  };
 }
 
 export function updateLab(state: LabBoardState, labId: string, actor: User, draft: LabDraft): ActionResult {
@@ -619,15 +720,25 @@ export function updateLab(state: LabBoardState, labId: string, actor: User, draf
   }
   return {
     ok: true,
-    state: replaceLab(state, labId, {
-      ...lab,
-      name,
-      code: clip(draft.code, 20),
-      location: clip(draft.location, 120),
-      kind: draft.kind,
-      capacity,
-      description: clip(draft.description, 280),
-    }),
+    state: record(
+      replaceLab(state, labId, {
+        ...lab,
+        name,
+        code: clip(draft.code, 20),
+        location: clip(draft.location, 120),
+        kind: draft.kind,
+        capacity,
+        description: clip(draft.description, 280),
+      }),
+      {
+        labId,
+        labName: name,
+        kind: "updated",
+        actorId: actor.id,
+        actorName: actor.name,
+        detail: `Saved name “${name}” and capacity ${capacity}`,
+      },
+    ),
   };
 }
 
@@ -662,7 +773,17 @@ export function addEquipment(state: LabBoardState, labId: string, actor: User, d
     condition: draft.condition,
     notes: clip(draft.notes, 200),
   };
-  return { ok: true, state: replaceLab(state, labId, { ...lab, equipment: [...lab.equipment, item] }) };
+  return {
+    ok: true,
+    state: record(replaceLab(state, labId, { ...lab, equipment: [...lab.equipment, item] }), {
+      labId,
+      labName: lab.name,
+      kind: "updated",
+      actorId: actor.id,
+      actorName: actor.name,
+      detail: `Added equipment: ${name} (${quantity})`,
+    }),
+  };
 }
 
 export function updateEquipment(state: LabBoardState, labId: string, equipmentId: string, actor: User, draft: EquipmentDraft): ActionResult {
@@ -679,14 +800,24 @@ export function updateEquipment(state: LabBoardState, labId: string, equipmentId
   if (quantity === null) return { ok: false, message: "Quantity must be a whole number from 0 to 9999." };
   return {
     ok: true,
-    state: replaceLab(state, labId, {
-      ...lab,
-      equipment: lab.equipment.map((item) =>
-        item.id === equipmentId
-          ? { ...item, name, quantity, condition: draft.condition, notes: clip(draft.notes, 200) }
-          : item,
-      ),
-    }),
+    state: record(
+      replaceLab(state, labId, {
+        ...lab,
+        equipment: lab.equipment.map((item) =>
+          item.id === equipmentId
+            ? { ...item, name, quantity, condition: draft.condition, notes: clip(draft.notes, 200) }
+            : item,
+        ),
+      }),
+      {
+        labId,
+        labName: lab.name,
+        kind: "updated",
+        actorId: actor.id,
+        actorName: actor.name,
+        detail: `Updated equipment: ${name} (${quantity})`,
+      },
+    ),
   };
 }
 
@@ -694,9 +825,17 @@ export function removeEquipment(state: LabBoardState, labId: string, equipmentId
   if (!isAdmin(actor)) return { ok: false, message: "Only an admin can update equipment." };
   const lab = requireLab(state, labId);
   if (isFailure(lab)) return lab;
+  const removed = lab.equipment.find((item) => item.id === equipmentId);
   return {
     ok: true,
-    state: replaceLab(state, labId, { ...lab, equipment: lab.equipment.filter((item) => item.id !== equipmentId) }),
+    state: record(replaceLab(state, labId, { ...lab, equipment: lab.equipment.filter((item) => item.id !== equipmentId) }), {
+      labId,
+      labName: lab.name,
+      kind: "updated",
+      actorId: actor.id,
+      actorName: actor.name,
+      detail: removed ? `Removed equipment: ${removed.name}` : "Removed equipment",
+    }),
   };
 }
 
