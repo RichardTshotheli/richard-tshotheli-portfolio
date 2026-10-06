@@ -5,7 +5,7 @@ export function TutLogo({ className = "h-12" }: { className?: string }) {
     <img
       src={tutLogo}
       alt="Tshwane University of Technology"
-      className={`w-auto rounded-md bg-white px-2 py-1 ${className}`}
+      className={`w-auto bg-transparent ${className}`}
     />
   );
 }

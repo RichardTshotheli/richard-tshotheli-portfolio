@@ -26,9 +26,6 @@ function PeoplePage() {
       <AddPerson />
       <section className="grid gap-3">
         <h1 className="font-display text-4xl font-semibold">People</h1>
-        <p className="text-sm text-muted-foreground">
-          Give lab assistants the right to open labs, take the student register, and send notes. Admins manage accounts and equipment.
-        </p>
         {state.users.map((person) => (
           <article key={person.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -65,11 +62,7 @@ function PeoplePage() {
               <p className="mt-3 text-sm text-muted-foreground">This is the account you are using.</p>
             )}
             <div className="mt-4 border-t border-border pt-4">
-              <LoginQr
-                number={person.username}
-                size={112}
-                caption="Scan to open sign-in with this number already filled in."
-              />
+              <LoginQr number={person.username} size={112} />
             </div>
           </article>
         ))}
@@ -115,10 +108,10 @@ function AddPerson() {
         <Field label="Full name" htmlFor="person-name">
           <Input id="person-name" value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
-        <Field label="Student or staff number" htmlFor="person-username" hint="This is what they type to sign in.">
+        <Field label="Student or staff number" htmlFor="person-username">
           <Input id="person-username" value={username} onChange={(event) => setUsername(event.target.value)} />
         </Field>
-        <Field label="Password" htmlFor="person-password" hint="At least 6 characters.">
+        <Field label="Password" htmlFor="person-password">
           <Input id="person-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
         </Field>
         <Field label="Role" htmlFor="person-role">
@@ -130,7 +123,7 @@ function AddPerson() {
         {role === "assistant" ? (
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" checked={rights} onChange={(event) => setRights(event.target.checked)} />
-            <span>Can open labs, take the student register, and send notes</span>
+            <span>Can open labs</span>
           </label>
         ) : null}
         <Button type="submit">Add person</Button>

@@ -53,16 +53,6 @@ export function LabWorkspace({ lab }: { lab: Lab }) {
       </section>
 
       {operate ? <DutyPanel lab={lab} /> : null}
-      {admin && !operate ? (
-        <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          Lab assistants with rights open the lab and mark the student register. You can update equipment and software below.
-        </p>
-      ) : null}
-      {!admin && !operate ? (
-        <p className="rounded-2xl border border-border bg-card px-4 py-3 text-sm">
-          Ask an admin to give your account rights before you can open labs or mark the register.
-        </p>
-      ) : null}
 
       <RegisterPanel lab={lab} canEdit={operate} />
       <InventorySection lab={lab} canEdit={admin} />
@@ -96,9 +86,8 @@ function DutyPanel({ lab }: { lab: Lab }) {
             apply(store.openLab(lab.id, note));
           }}
         >
-          <p className="text-sm text-muted-foreground">Opening the lab marks you as the assistant on duty, then you can register students.</p>
           <Field label="What the lab is open for" htmlFor="open-note">
-            <Textarea id="open-note" value={note} placeholder="CSE practical, project session, or open study" onChange={(event) => setNote(event.target.value)} />
+            <Textarea id="open-note" value={note} onChange={(event) => setNote(event.target.value)} />
           </Field>
           <Button type="submit">I am here — open the lab</Button>
           <FormMessage message={message} />
@@ -178,11 +167,9 @@ function RegisterPanel({ lab, canEdit }: { lab: Lab; canEdit: boolean }) {
 
   return (
     <div className="grid gap-5">
-      {canEdit ? (
+      {canEdit && lab.isOpen ? (
         <Panel title="Student register">
-          {lab.isOpen ? (
             <form noValidate className="grid gap-4" onSubmit={onSubmit}>
-              <p className="text-sm text-muted-foreground">Add each student as they enter. The count above updates from this list.</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Student name" htmlFor="student-name">
                   <Input id="student-name" value={name} onChange={(event) => setName(event.target.value)} />
@@ -203,9 +190,6 @@ function RegisterPanel({ lab, canEdit }: { lab: Lab; canEdit: boolean }) {
               <Button type="submit">Add to register</Button>
               <FormMessage message={message} />
             </form>
-          ) : (
-            <p className="text-sm text-muted-foreground">Open the lab first, then students can be added to the register.</p>
-          )}
         </Panel>
       ) : null}
 
@@ -259,7 +243,6 @@ function InventorySection({ lab, canEdit }: { lab: Lab; canEdit: boolean }) {
     <div className="grid gap-5 lg:grid-cols-2">
       <Catalog
         title="Equipment"
-        intro={canEdit ? "Update quantities, condition, and what is kept in this lab." : "Equipment currently listed for this lab."}
         canEdit={canEdit}
         empty="No equipment listed yet."
         items={lab.equipment}
@@ -302,7 +285,6 @@ function InventorySection({ lab, canEdit }: { lab: Lab; canEdit: boolean }) {
       />
       <Catalog
         title="Software"
-        intro={canEdit ? "Keep the programs installed on the computers up to date." : "Software listed for the computers in this lab."}
         canEdit={canEdit}
         empty="No software listed yet."
         items={lab.software}
@@ -327,7 +309,7 @@ function InventorySection({ lab, canEdit }: { lab: Lab; canEdit: boolean }) {
                 <Input id={`sw-version-${lab.id}`} value={draft.version} onChange={(event) => setDraft({ ...draft, version: event.target.value })} />
               </Field>
               <Field label="Installed on" htmlFor={`sw-where-${lab.id}`}>
-                <Input id={`sw-where-${lab.id}`} value={draft.installedOn} placeholder="All computers" onChange={(event) => setDraft({ ...draft, installedOn: event.target.value })} />
+                <Input id={`sw-where-${lab.id}`} value={draft.installedOn} onChange={(event) => setDraft({ ...draft, installedOn: event.target.value })} />
               </Field>
             </div>
           </div>
@@ -339,7 +321,6 @@ function InventorySection({ lab, canEdit }: { lab: Lab; canEdit: boolean }) {
 
 function Catalog<T extends Equipment | SoftwareItem>({
   title,
-  intro,
   canEdit,
   empty,
   items,
@@ -350,7 +331,6 @@ function Catalog<T extends Equipment | SoftwareItem>({
   fields,
 }: {
   title: string;
-  intro: string;
   canEdit: boolean;
   empty: string;
   items: T[];
@@ -366,7 +346,6 @@ function Catalog<T extends Equipment | SoftwareItem>({
 
   return (
     <Panel title={title}>
-      <p className="text-sm text-muted-foreground">{intro}</p>
       {canEdit ? (
         <form
           noValidate
@@ -462,7 +441,6 @@ function NoteComposer({ labId }: { labId: string }) {
           setSent(true);
         }}
       >
-        <p className="text-sm text-muted-foreground">Tell the admin about maintenance, a fault, or something missing in this lab.</p>
         <Field label="What is this about" htmlFor="note-kind">
           <select id="note-kind" className={controlClass} value={kind} onChange={(event) => setKind(event.target.value as NoteKind)}>
             {NOTE_KINDS.map((item) => (
@@ -473,10 +451,10 @@ function NoteComposer({ labId }: { labId: string }) {
           </select>
         </Field>
         <Field label="Note" htmlFor="note-message">
-          <Textarea id="note-message" value={message} placeholder="Projector in row 2 will not switch on" onChange={(event) => setMessage(event.target.value)} />
+          <Textarea id="note-message" value={message} onChange={(event) => setMessage(event.target.value)} />
         </Field>
         <Button type="submit">Send to admin</Button>
-        {sent ? <p className="text-sm font-medium text-emerald-700">Note sent. The admin can see it under Notes.</p> : null}
+        {sent ? <p className="text-sm font-medium text-emerald-700">Note sent.</p> : null}
         <FormMessage message={error} />
       </form>
     </Panel>

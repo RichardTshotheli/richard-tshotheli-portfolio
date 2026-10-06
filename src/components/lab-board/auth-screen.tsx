@@ -37,38 +37,28 @@ export function AuthScreen({ mode }: { mode: "setup" | "login" }) {
 
   return (
     <div className="lab-app flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/50 bg-card shadow-xl md:grid-cols-[1.05fr_0.95fr]">
-        <section className="bg-[var(--lab-header)] px-8 py-10 text-white sm:px-10">
-          <TutLogo className="h-14" />
-          <h1 className="mt-6 font-display text-4xl font-semibold leading-tight sm:text-5xl">CSE Labs</h1>
-          <p className="mt-2 max-w-sm text-lg text-white/90">Computer Systems Engineering</p>
-          <ul className="mt-8 space-y-3 text-sm leading-relaxed text-white/85">
-            <li>Lab assistants mark a lab open when they are on duty.</li>
-            <li>The register shows how many students are inside.</li>
-            <li>Assistants send maintenance and missing-item notes to the admin.</li>
-            <li>The admin manages people, rights, and what is in each lab.</li>
-          </ul>
-          {mode === "login" ? (
-            <div className="mt-8 text-white/80">
-              <LoginQr caption="Scan with your phone to open CSE Labs." />
-            </div>
-          ) : null}
-        </section>
-        <form noValidate className="grid content-center gap-4 px-8 py-10 sm:px-10" onSubmit={onSubmit}>
+      <div className="w-full max-w-5xl overflow-hidden rounded-3xl border border-white/50 bg-card shadow-xl">
+        <div className="flex items-center gap-4 border-b border-border px-8 py-5">
+          <TutLogo className="h-16" />
           <div>
-            <h2 className="font-display text-3xl font-semibold">{mode === "setup" ? "Create the admin account" : "Sign in"}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {mode === "setup"
-                ? "Use your staff number. This first account manages users and equipment. You can add lab assistants after signing in."
-                : "Enter your student or staff number, then your password."}
-            </p>
+            <h1 className="font-display text-3xl font-semibold leading-none text-[var(--lab-header)]">CSE Labs</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Computer Systems Engineering</p>
           </div>
+        </div>
+        <div className={`grid ${mode === "login" ? "md:grid-cols-[1.05fr_0.95fr]" : ""}`}>
+        {mode === "login" ? (
+          <section className="flex items-end bg-[var(--lab-header)] px-8 py-10 text-white sm:px-10">
+            <LoginQr />
+          </section>
+        ) : null}
+        <form noValidate className="grid content-center gap-4 px-8 py-10 sm:px-10" onSubmit={onSubmit}>
+          <h2 className="font-display text-3xl font-semibold">{mode === "setup" ? "Create the admin account" : "Sign in"}</h2>
           {mode === "setup" ? (
             <Field label="Full name" htmlFor="admin-name">
               <Input id="admin-name" value={name} autoComplete="name" onChange={(event) => setName(event.target.value)} />
             </Field>
           ) : null}
-          <Field label="Student or staff number" htmlFor="staff-number" hint="4–12 letters or digits.">
+          <Field label="Student or staff number" htmlFor="staff-number">
             <Input
               id="staff-number"
               value={number}
@@ -78,7 +68,7 @@ export function AuthScreen({ mode }: { mode: "setup" | "login" }) {
               onChange={(event) => setNumber(event.target.value)}
             />
           </Field>
-          <Field label="Password" htmlFor="password" {...(mode === "setup" ? { hint: "At least 6 characters." } : {})}>
+          <Field label="Password" htmlFor="password">
             <Input
               id="password"
               type="password"
@@ -92,6 +82,7 @@ export function AuthScreen({ mode }: { mode: "setup" | "login" }) {
           </Button>
           <FormMessage message={message} />
         </form>
+        </div>
       </div>
     </div>
   );

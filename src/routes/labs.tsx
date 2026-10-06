@@ -42,30 +42,34 @@ function LabsFrame() {
 
   return (
     <div className="lab-app min-h-screen">
-      <header className="border-b border-white/10 bg-[var(--lab-header)] text-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <div className="flex items-center gap-3">
-            <TutLogo className="h-11" />
-            <div>
-              <p className="font-display text-xl font-semibold leading-none">CSE Labs</p>
-              <p className="mt-1 text-xs text-white/80">Computer Systems Engineering</p>
+      <header>
+        <div className="border-b border-border bg-card">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
+            <div className="flex items-center gap-3">
+              <TutLogo className="h-12" />
+              <div>
+                <p className="font-display text-xl font-semibold leading-none text-[var(--lab-header)]">CSE Labs</p>
+                <p className="mt-1 text-xs text-muted-foreground">Computer Systems Engineering</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <p>
+                {user.name}
+                <span className="ml-2 text-muted-foreground">{user.username}</span>
+                <span className="ml-2 rounded-full bg-[var(--lab-header)] px-2 py-0.5 text-xs font-semibold text-white">{roleLabel}</span>
+              </p>
+              <button type="button" className="rounded-full border border-[var(--lab-header)] px-3 py-1 text-[var(--lab-header)] hover:bg-[var(--lab-mint)]" onClick={() => store.logout()}>
+                Sign out
+              </button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <p className="text-white">
-              {user.name}
-              <span className="ml-2 text-white/70">{user.username}</span>
-              <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold">{roleLabel}</span>
-            </p>
-            <button type="button" className="rounded-full border border-white/30 px-3 py-1 hover:bg-white/10" onClick={() => store.logout()}>
-              Sign out
-            </button>
-          </div>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-2 px-5 pb-3 sm:px-8" aria-label="Laboratory">
+        <nav className="bg-[var(--lab-header)]" aria-label="Laboratory">
+        <div className="mx-auto flex max-w-6xl gap-2 px-5 py-3 sm:px-8">
           <NavLink to="/labs" label="Labs" />
           <NavLink to="/labs/notes" label={user.role === "admin" ? `Notes (${openNotes})` : "Notes"} />
           {user.role === "admin" ? <NavLink to="/labs/people" label="People" /> : null}
+        </div>
         </nav>
       </header>
       <Outlet />

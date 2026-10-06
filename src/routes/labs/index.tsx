@@ -30,13 +30,6 @@ function LabsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl font-semibold">Labs</h1>
-          <p className="mt-2 max-w-2xl text-muted-foreground">
-            {isAdmin(user)
-              ? "See who is on duty, how many students are inside, and keep equipment up to date."
-              : user.canOperateLabs
-                ? "Open a lab when you are on duty, then mark the students who come in."
-                : "Your account does not have rights to open labs yet. Ask an admin to grant them."}
-          </p>
         </div>
         {isAdmin(user) ? (
           <Button type="button" onClick={() => setAdding((value) => !value)}>
@@ -45,14 +38,8 @@ function LabsPage() {
         ) : null}
       </div>
 
-      <section className="mt-6 flex flex-wrap items-center gap-5 rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <LoginQr size={120} caption="Scan to open CSE Labs." />
-        <div className="max-w-xl">
-          <h2 className="font-display text-2xl font-semibold">Quick sign-in</h2>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            Scan this code with a phone to open CSE Labs. Sign in with a student or staff number and password.
-          </p>
-        </div>
+      <section className="mt-6 w-fit rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <LoginQr size={120} />
       </section>
 
       <dl className="mt-6 grid gap-3 sm:grid-cols-3">

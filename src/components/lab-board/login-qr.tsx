@@ -3,15 +3,7 @@ import QRCode from "qrcode";
 
 import { loginLink } from "@/lib/lab-links";
 
-export function LoginQr({
-  number,
-  caption = "Scan to open CSE Labs, then sign in.",
-  size = 168,
-}: {
-  number?: string;
-  caption?: string;
-  size?: number;
-}) {
+export function LoginQr({ number, caption, size = 168 }: { number?: string; caption?: string; size?: number }) {
   const value = loginLink(number);
   const [src, setSrc] = useState<string | null>(null);
 
@@ -39,7 +31,7 @@ export function LoginQr({
           <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">Preparing QR…</div>
         )}
       </div>
-      <figcaption className="max-w-[14rem] text-center text-xs leading-relaxed">{caption}</figcaption>
+      {caption ? <figcaption className="max-w-[14rem] text-center text-xs leading-relaxed">{caption}</figcaption> : null}
     </figure>
   );
 }

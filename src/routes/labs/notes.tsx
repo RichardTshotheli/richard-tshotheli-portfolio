@@ -21,11 +21,6 @@ function NotesPage() {
   return (
     <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
       <h1 className="font-display text-4xl font-semibold">{isAdmin(user) ? "Notes from the labs" : "Your notes"}</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground">
-        {isAdmin(user)
-          ? "Lab assistants send these when something needs maintenance or is missing."
-          : "Notes you send from a lab appear here for the admin."}
-      </p>
 
       <section className="mt-6 grid gap-3">
         <h2 className="font-display text-2xl font-semibold">Open ({openNotes.length})</h2>
