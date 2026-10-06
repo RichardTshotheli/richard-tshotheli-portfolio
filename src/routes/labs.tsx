@@ -30,9 +30,6 @@ function LabsLayout() {
               <Link to="/labs" className="text-white/80 hover:text-white">
                 All labs
               </Link>
-              <Link to="/" className="text-portfolio-gold hover:underline">
-                Portfolio
-              </Link>
             </nav>
           </div>
         </header>
