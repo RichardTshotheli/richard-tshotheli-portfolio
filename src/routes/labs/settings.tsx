@@ -9,11 +9,14 @@ import { Input } from "@/components/ui/input";
 import {
   CONDITION_LABELS,
   EQUIPMENT_CONDITIONS,
+  KIND_LABELS,
+  LAB_KINDS,
   formatWhen,
   isAdmin,
   sortedLabs,
   type EquipmentCondition,
   type Lab,
+  type LabKind,
 } from "@/lib/lab-board";
 import { CSE_LABS_URL } from "@/lib/lab-links";
 
@@ -62,7 +65,12 @@ function SettingsPage() {
       </section>
 
       <section className="grid gap-4">
-        <h2 className="font-display text-2xl font-semibold">Labs</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="font-display text-2xl font-semibold">Labs</h2>
+          <p className="text-sm text-muted-foreground">{labs.length} {labs.length === 1 ? "lab" : "labs"}</p>
+        </div>
+        <AddLabForm />
+        {labs.length === 0 ? <p className="text-sm text-muted-foreground">No labs yet. Add the first one above.</p> : null}
         {labs.map((lab) => (
           <LabEditor key={lab.id} lab={lab} />
         ))}
@@ -96,6 +104,8 @@ function LabEditor({ lab }: { lab: Lab }) {
   const [name, setName] = useState(lab.name);
   const [capacity, setCapacity] = useState(lab.capacity);
   const [message, setMessage] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [equipmentName, setEquipmentName] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [condition, setCondition] = useState<EquipmentCondition>("working");
@@ -117,7 +127,16 @@ function LabEditor({ lab }: { lab: Lab }) {
       capacity,
       description: lab.description,
     });
+    setSaved(result.ok);
     setMessage(result.ok ? null : result.message);
+  }
+
+  function removeThisLab() {
+    const result = store.removeLab(lab.id);
+    if (!result.ok) {
+      setMessage(result.message);
+      setConfirmRemove(false);
+    }
   }
 
   function saveEquipment(event: FormEvent) {
@@ -139,23 +158,47 @@ function LabEditor({ lab }: { lab: Lab }) {
     <article className={`rounded-2xl border p-5 shadow-sm ${lab.isOpen ? "border-emerald-600 bg-emerald-50" : "border-red-600 bg-red-50"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-display text-2xl font-semibold">{lab.name}</h3>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white ${lab.isOpen ? "bg-emerald-600" : "bg-red-600"}`}>
-          {lab.isOpen ? "Open" : "Closed"}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white ${lab.isOpen ? "bg-emerald-600" : "bg-red-600"}`}>
+            {lab.isOpen ? "Open" : "Closed"}
+          </span>
+          {confirmRemove ? (
+            <>
+              <Button type="button" size="sm" variant="destructive" onClick={removeThisLab}>
+                Confirm remove
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setConfirmRemove(false)}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button type="button" size="sm" variant="destructive" onClick={() => setConfirmRemove(true)}>
+              Remove lab
+            </Button>
+          )}
+        </div>
       </div>
+      {confirmRemove ? <p className="mt-2 text-sm text-red-800">This removes {lab.name}{lab.isOpen ? ", which is open right now" : ""}.</p> : null}
       <p className="mt-1 text-sm">{lab.isOpen ? `Opened by ${lab.openedBy || "Assistant"}` : "Closed"}</p>
 
       <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_140px_auto] sm:items-end" onSubmit={saveLab}>
         <Field label="Name" htmlFor={`lab-name-${lab.id}`}>
-          <Input id={`lab-name-${lab.id}`} value={name} onChange={(event) => setName(event.target.value)} />
+          <Input
+            id={`lab-name-${lab.id}`}
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value);
+              setSaved(false);
+            }}
+          />
         </Field>
         <Field label="Capacity" htmlFor={`lab-capacity-${lab.id}`}>
           <Input id={`lab-capacity-${lab.id}`} type="number" min={1} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} />
         </Field>
-        <Button type="submit">Save lab</Button>
+        <Button type="submit">Save name and capacity</Button>
       </form>
       <div className="mt-2">
-        <FormMessage message={message} />
+        {saved ? <p className="text-sm font-medium text-emerald-800">Name and capacity saved.</p> : <FormMessage message={message} />}
       </div>
 
       <h4 className="mt-6 font-semibold">Equipment</h4>
@@ -229,5 +272,58 @@ function LabEditor({ lab }: { lab: Lab }) {
         <FormMessage message={equipmentMessage} />
       </form>
     </article>
+  );
+}
+
+function AddLabForm() {
+  const store = useLabStore();
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
+  const [kind, setKind] = useState<LabKind>("computer");
+  const [capacity, setCapacity] = useState(20);
+  const [message, setMessage] = useState<string | null>(null);
+
+  function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    const result = store.addLab({ name, code: "", location, kind, capacity, description: "" });
+    if (!result.ok) {
+      setMessage(result.message);
+      return;
+    }
+    setName("");
+    setLocation("");
+    setKind("computer");
+    setCapacity(20);
+    setMessage(null);
+  }
+
+  return (
+    <form className="grid gap-3 rounded-2xl border border-border bg-white p-5 shadow-sm" onSubmit={onSubmit}>
+      <h3 className="font-display text-xl font-semibold">Add a lab</h3>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Name" htmlFor="settings-lab-name">
+          <Input id="settings-lab-name" value={name} onChange={(event) => setName(event.target.value)} />
+        </Field>
+        <Field label="Location" htmlFor="settings-lab-location">
+          <Input id="settings-lab-location" value={location} onChange={(event) => setLocation(event.target.value)} />
+        </Field>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-[1fr_140px_auto] sm:items-end">
+        <Field label="Kind" htmlFor="settings-lab-kind">
+          <select id="settings-lab-kind" className={controlClass} value={kind} onChange={(event) => setKind(event.target.value as LabKind)}>
+            {LAB_KINDS.map((item) => (
+              <option key={item} value={item}>
+                {KIND_LABELS[item]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Capacity" htmlFor="settings-lab-capacity">
+          <Input id="settings-lab-capacity" type="number" min={1} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} />
+        </Field>
+        <Button type="submit">Add lab</Button>
+      </div>
+      <FormMessage message={message} />
+    </form>
   );
 }

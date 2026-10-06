@@ -425,7 +425,7 @@ export function loadLabBoard(): LabBoardState {
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed) || !Array.isArray(parsed.labs)) return seedLabBoard();
     const labs = parsed.labs.map(asLab).filter((item) => item !== null);
-    if (labs.length === 0) return seedLabBoard();
+    if (parsed.labs.length > 0 && labs.length === 0) return seedLabBoard();
     const attendance = Array.isArray(parsed.attendance)
       ? parsed.attendance.map(asAttendance).filter((item) => item !== null)
       : [];
@@ -748,12 +748,22 @@ export function removeLab(state: LabBoardState, labId: string, actor: User): Act
   if (isFailure(lab)) return lab;
   return {
     ok: true,
-    state: {
-      ...state,
-      labs: state.labs.filter((item) => item.id !== labId),
-      attendance: state.attendance.filter((entry) => entry.labId !== labId),
-      notes: state.notes.filter((note) => note.labId !== labId),
-    },
+    state: record(
+      {
+        ...state,
+        labs: state.labs.filter((item) => item.id !== labId),
+        attendance: state.attendance.filter((entry) => entry.labId !== labId),
+        notes: state.notes.filter((note) => note.labId !== labId),
+      },
+      {
+        labId,
+        labName: lab.name,
+        kind: "updated",
+        actorId: actor.id,
+        actorName: actor.name,
+        detail: "Removed the lab",
+      },
+    ),
   };
 }
 

@@ -52,6 +52,8 @@ function LabsPage() {
         </div>
       ) : null}
 
+      {labs.length === 0 ? <p className="mt-6 text-sm text-muted-foreground">No labs yet.</p> : null}
+
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {labs.map((lab) => {
           const inside = peopleInside(state.attendance, lab.id).length;
