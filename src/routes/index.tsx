@@ -1,16 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowUpRight, Check, LogOut, Pencil, Plus, Save, X } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ArrowUpRight } from "lucide-react";
+import { useMemo } from "react";
 
 import portraitImage from "@/assets/richard-portrait.jpg";
 import { ProfileAssistant } from "@/components/profile-assistant";
 import { openProfileAssistant } from "@/lib/profile-assistant";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { lovable } from "@/integrations/lovable";
-import { supabase } from "@/integrations/supabase/client";
 
 type Project = { title: string; category: string; description: string; image: string };
 type Experience = {
@@ -216,20 +211,6 @@ function isEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function mergePortfolio(saved: Partial<Portfolio>): Portfolio {
-  return {
-    ...fallback,
-    ...saved,
-    skills: saved.skills?.length ? saved.skills : fallback.skills,
-    skillGroups: saved.skillGroups?.length ? saved.skillGroups : fallback.skillGroups,
-    experience: saved.experience?.length
-      ? saved.experience.map((item) => ({ summary: "", location: "", duties: [], ...item }))
-      : fallback.experience,
-    education: saved.education?.length ? saved.education : fallback.education,
-    projects: saved.projects?.length ? saved.projects : fallback.projects,
-  };
-}
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -252,51 +233,7 @@ export const Route = createFileRoute("/")({
 });
 
 function PortfolioPage() {
-  const [content, setContent] = useState<Portfolio>(fallback);
-  const [draft, setDraft] = useState<Portfolio>(fallback);
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [signedIn, setSignedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    let unsubscribe = () => {};
-
-    async function load() {
-      try {
-        const [portfolioResult, sessionResult] = await Promise.all([
-          supabase.from("portfolio_content").select("content").eq("slug", "main").maybeSingle(),
-          supabase.auth.getSession(),
-        ]);
-        if (!active) return;
-        if (portfolioResult.data?.content) {
-          const merged = mergePortfolio(portfolioResult.data.content as Partial<Portfolio>);
-          setContent(merged);
-          setDraft(merged);
-        }
-        setSignedIn(Boolean(sessionResult.data.session));
-      } catch {
-        // The published page still renders from local content if the content service is unavailable.
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void load();
-
-    try {
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session)));
-      unsubscribe = () => data.subscription.unsubscribe();
-    } catch {
-      // Sign-in is only required for editing.
-    }
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, []);
+  const content = fallback;
 
   const initials = useMemo(
     () =>
@@ -311,27 +248,6 @@ function PortfolioPage() {
 
   const contactHref = isEmail(content.email) ? `mailto:${content.email}` : content.linkedin;
   const contactLabel = isEmail(content.email) ? content.email : "LinkedIn";
-
-  async function savePortfolio() {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    setNotice("Saving…");
-    const { error } = await supabase
-      .from("portfolio_content")
-      .update({
-        content: draft as unknown as never,
-        owner_id: userData.user.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("slug", "main");
-    if (error) {
-      setNotice(error.message);
-      return;
-    }
-    setContent(draft);
-    setNotice("Saved");
-    window.setTimeout(() => setNotice(""), 2200);
-  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -541,322 +457,12 @@ function PortfolioPage() {
             </div>
           </div>
         </div>
-        <footer className="mx-auto flex max-w-6xl flex-col gap-3 border-t border-white/10 px-5 py-6 text-sm text-white/70 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+        <footer className="mx-auto max-w-6xl border-t border-white/10 px-5 py-6 text-sm text-white/70 sm:px-8">
           <span>© {new Date().getFullYear()} {content.name}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setDraft(content);
-              setEditorOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 text-left hover:text-white"
-          >
-            <Pencil className="size-3.5" aria-hidden="true" /> Edit portfolio
-          </button>
         </footer>
       </section>
 
-      {editorOpen ? (
-        <EditorModal
-          signedIn={signedIn}
-          draft={draft}
-          setDraft={setDraft}
-          notice={notice}
-          onSave={savePortfolio}
-          onClose={() => setEditorOpen(false)}
-        />
-      ) : null}
       <ProfileAssistant profile={content} />
-      {loading ? <div className="fixed inset-x-0 top-0 z-50 h-0.5 bg-primary" /> : null}
     </main>
   );
-}
-
-function EditorModal({
-  signedIn,
-  draft,
-  setDraft,
-  notice,
-  onSave,
-  onClose,
-}: {
-  signedIn: boolean;
-  draft: Portfolio;
-  setDraft: (value: Portfolio) => void;
-  notice: string;
-  onSave: () => Promise<void>;
-  onClose: () => void;
-}) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [authMessage, setAuthMessage] = useState("");
-  const [isSignup, setIsSignup] = useState(false);
-
-  async function handleEmailAuth() {
-    setAuthMessage("Please wait…");
-    const result = isSignup
-      ? await supabase.auth.signUp({ email, password })
-      : await supabase.auth.signInWithPassword({ email, password });
-    if (result.error) {
-      setAuthMessage(result.error.message);
-      return;
-    }
-    setAuthMessage(isSignup && !result.data.session ? "Check your email to confirm your account." : "Signed in.");
-  }
-
-  async function handleGoogle() {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) setAuthMessage(result.error.message);
-  }
-
-  function update<K extends keyof Portfolio>(key: K, value: Portfolio[K]) {
-    setDraft({ ...draft, [key]: value });
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 bg-background/80 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-label="Portfolio editor">
-      <div className="mx-auto flex h-full max-w-4xl flex-col overflow-hidden border border-portfolio-line bg-portfolio-surface shadow-2xl">
-        <div className="flex items-center justify-between border-b border-portfolio-line px-5 py-4">
-          <div>
-            <p className="font-display text-xl font-semibold">Portfolio editor</p>
-            <p className="text-xs text-portfolio-mist">Saved changes replace the published content.</p>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close editor">
-            <X />
-          </Button>
-        </div>
-        {!signedIn ? (
-          <div className="m-auto w-full max-w-sm p-6">
-            <h2 className="font-display text-3xl font-semibold">Owner access</h2>
-            <p className="mt-2 text-sm text-portfolio-mist">Sign in to edit the published portfolio.</p>
-            <Button variant="portfolioLight" className="mt-7 w-full" onClick={handleGoogle}>
-              Continue with Google
-            </Button>
-            <div className="my-5 flex items-center gap-3 text-xs text-portfolio-mist">
-              <span className="h-px flex-1 bg-border" />
-              or use email
-              <span className="h-px flex-1 bg-border" />
-            </div>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="auth-email">Email</Label>
-                <Input id="auth-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2" />
-              </div>
-              <div>
-                <Label htmlFor="auth-password">Password</Label>
-                <Input id="auth-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2" />
-              </div>
-            </div>
-            {authMessage ? <p className="mt-4 text-sm text-primary">{authMessage}</p> : null}
-            <Button variant="portfolio" className="mt-5 w-full" onClick={handleEmailAuth}>
-              {isSignup ? "Create owner account" : "Sign in"}
-            </Button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignup(!isSignup);
-                setAuthMessage("");
-              }}
-              className="mt-4 w-full text-sm text-portfolio-mist hover:text-foreground"
-            >
-              {isSignup ? "Already have an account? Sign in" : "First time? Create an owner account"}
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-y-auto p-5 sm:p-7">
-              <div className="grid gap-6 sm:grid-cols-2">
-                <EditField id="name" label="Name" value={draft.name} onChange={(value) => update("name", value)} />
-                <EditField id="role" label="Professional title" value={draft.role} onChange={(value) => update("role", value)} />
-                <EditField id="location" label="Location" value={draft.location} onChange={(value) => update("location", value)} />
-                <EditField id="status" label="Current affiliation" value={draft.status} onChange={(value) => update("status", value)} />
-                <EditField id="email" label="Email" value={draft.email} onChange={(value) => update("email", value)} />
-                <EditField id="linkedin" label="LinkedIn URL" value={draft.linkedin} onChange={(value) => update("linkedin", value)} />
-                <div className="sm:col-span-2">
-                  <Label htmlFor="intro">Short introduction</Label>
-                  <Textarea id="intro" rows={3} value={draft.intro} onChange={(event) => update("intro", event.target.value)} className="mt-2" />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="bio">About</Label>
-                  <Textarea id="bio" rows={5} value={draft.bio} onChange={(event) => update("bio", event.target.value)} className="mt-2" />
-                </div>
-              </div>
-
-              <EditorSection
-                title="Skill groups"
-                onAdd={() => update("skillGroups", [...draft.skillGroups, { label: "New group", items: ["Skill"] }])}
-              >
-                {draft.skillGroups.map((group, index) => (
-                  <div key={`${group.label}-${index}`} className="grid gap-3 border border-portfolio-line p-4 sm:grid-cols-2">
-                    <EditField
-                      id={`skill-label-${index}`}
-                      label="Group"
-                      value={group.label}
-                      onChange={(value) => updateSkillGroup(draft, setDraft, index, { ...group, label: value })}
-                    />
-                    <EditField
-                      id={`skill-items-${index}`}
-                      label="Skills, separated by commas"
-                      value={group.items.join(", ")}
-                      onChange={(value) =>
-                        updateSkillGroup(draft, setDraft, index, {
-                          ...group,
-                          items: value.split(",").map((item) => item.trim()).filter(Boolean),
-                        })
-                      }
-                    />
-                  </div>
-                ))}
-              </EditorSection>
-
-              <EditorSection
-                title="Experience"
-                onAdd={() =>
-                  update("experience", [
-                    ...draft.experience,
-                    { role: "New role", company: "Organisation", period: "Year", location: "", summary: "", duties: [] },
-                  ])
-                }
-              >
-                {draft.experience.map((item, index) => (
-                  <div key={`${item.role}-${index}`} className="grid gap-3 border border-portfolio-line p-4">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <EditField id={`role-${index}`} label="Role" value={item.role} onChange={(value) => updateExperience(draft, setDraft, index, "role", value)} />
-                      <EditField id={`company-${index}`} label="Organisation" value={item.company} onChange={(value) => updateExperience(draft, setDraft, index, "company", value)} />
-                      <EditField id={`period-${index}`} label="Period" value={item.period} onChange={(value) => updateExperience(draft, setDraft, index, "period", value)} />
-                      <EditField id={`location-${index}`} label="Location" value={item.location} onChange={(value) => updateExperience(draft, setDraft, index, "location", value)} />
-                    </div>
-                    <EditField id={`summary-${index}`} label="Summary" value={item.summary} onChange={(value) => updateExperience(draft, setDraft, index, "summary", value)} />
-                    <div>
-                      <Label htmlFor={`duties-${index}`}>Duties, one per line</Label>
-                      <Textarea
-                        id={`duties-${index}`}
-                        rows={4}
-                        value={item.duties.join("\n")}
-                        onChange={(event) => updateExperienceDuties(draft, setDraft, index, event.target.value.split("\n"))}
-                        className="mt-2"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </EditorSection>
-
-              <EditorSection
-                title="Projects"
-                onAdd={() =>
-                  update("projects", [
-                    ...draft.projects,
-                    { title: "New project", category: "Category", description: "Describe this project.", image: "" },
-                  ])
-                }
-              >
-                {draft.projects.map((project, index) => (
-                  <div key={`${project.title}-${index}`} className="grid gap-3 border border-portfolio-line p-4 sm:grid-cols-2">
-                    <EditField id={`project-title-${index}`} label="Title" value={project.title} onChange={(value) => updateProject(draft, setDraft, index, "title", value)} />
-                    <EditField id={`project-category-${index}`} label="Category" value={project.category} onChange={(value) => updateProject(draft, setDraft, index, "category", value)} />
-                    <div className="sm:col-span-2">
-                      <EditField id={`project-description-${index}`} label="Description" value={project.description} onChange={(value) => updateProject(draft, setDraft, index, "description", value)} />
-                    </div>
-                  </div>
-                ))}
-              </EditorSection>
-
-              <EditorSection
-                title="Education"
-                onAdd={() =>
-                  update("education", [
-                    ...draft.education,
-                    { qualification: "Qualification", institution: "Institution", period: "Year", detail: "Details." },
-                  ])
-                }
-              >
-                {draft.education.map((item, index) => (
-                  <div key={`${item.qualification}-${index}`} className="grid gap-3 border border-portfolio-line p-4 sm:grid-cols-2">
-                    <EditField id={`qualification-${index}`} label="Qualification" value={item.qualification} onChange={(value) => updateEducation(draft, setDraft, index, "qualification", value)} />
-                    <EditField id={`institution-${index}`} label="Institution" value={item.institution} onChange={(value) => updateEducation(draft, setDraft, index, "institution", value)} />
-                    <EditField id={`edu-period-${index}`} label="Period" value={item.period} onChange={(value) => updateEducation(draft, setDraft, index, "period", value)} />
-                    <EditField id={`edu-detail-${index}`} label="Detail" value={item.detail} onChange={(value) => updateEducation(draft, setDraft, index, "detail", value)} />
-                  </div>
-                ))}
-              </EditorSection>
-            </div>
-            <div className="flex items-center justify-between border-t border-portfolio-line px-5 py-4">
-              <Button variant="ghost" onClick={() => void supabase.auth.signOut()}>
-                <LogOut /> Sign out
-              </Button>
-              <div className="flex items-center gap-3">
-                {notice ? (
-                  <span className="flex items-center gap-1 text-sm text-primary">
-                    {notice === "Saved" ? <Check className="size-4" /> : null}
-                    {notice}
-                  </span>
-                ) : null}
-                <Button variant="portfolio" onClick={() => void onSave()}>
-                  <Save /> Save changes
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EditField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (value: string) => void }) {
-  return (
-    <div>
-      <Label htmlFor={id}>{label}</Label>
-      <Input id={id} value={value} onChange={(event) => onChange(event.target.value)} className="mt-2" />
-    </div>
-  );
-}
-
-function EditorSection({ title, onAdd, children }: { title: string; onAdd: () => void; children: ReactNode }) {
-  return (
-    <section className="mt-9">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-display text-xl font-semibold">{title}</h3>
-        <Button variant="portfolioGlass" size="sm" onClick={onAdd}>
-          <Plus /> Add
-        </Button>
-      </div>
-      <div className="space-y-3">{children}</div>
-    </section>
-  );
-}
-
-function updateProject(draft: Portfolio, setDraft: (value: Portfolio) => void, index: number, key: keyof Project, value: string) {
-  const projects = draft.projects.map((project, itemIndex) => (itemIndex === index ? { ...project, [key]: value } : project));
-  setDraft({ ...draft, projects });
-}
-
-function updateExperience(
-  draft: Portfolio,
-  setDraft: (value: Portfolio) => void,
-  index: number,
-  key: "role" | "company" | "period" | "location" | "summary",
-  value: string,
-) {
-  const experience = draft.experience.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item));
-  setDraft({ ...draft, experience });
-}
-
-function updateExperienceDuties(draft: Portfolio, setDraft: (value: Portfolio) => void, index: number, duties: string[]) {
-  const experience = draft.experience.map((item, itemIndex) => (itemIndex === index ? { ...item, duties } : item));
-  setDraft({ ...draft, experience });
-}
-
-function updateEducation(draft: Portfolio, setDraft: (value: Portfolio) => void, index: number, key: keyof Education, value: string) {
-  const education = draft.education.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item));
-  setDraft({ ...draft, education });
-}
-
-function updateSkillGroup(draft: Portfolio, setDraft: (value: Portfolio) => void, index: number, next: SkillGroup) {
-  const skillGroups = draft.skillGroups.map((group, itemIndex) => (itemIndex === index ? next : group));
-  setDraft({
-    ...draft,
-    skillGroups,
-    skills: skillGroups.flatMap((group) => group.items),
-  });
 }
