@@ -752,8 +752,8 @@ export function removeSoftware(state: LabBoardState, labId: string, softwareId: 
   };
 }
 
-function usernameOk(value: string) {
-  return /^[a-z0-9._-]{3,24}$/.test(value);
+function numberOk(value: string) {
+  return /^(?=.*\d)[a-z0-9]{4,12}$/.test(value);
 }
 
 function activeAdmins(users: User[]) {
@@ -765,12 +765,14 @@ export function createUser(state: LabBoardState, actor: User | null, draft: User
   if (!firstAccount && !isAdmin(actor)) return { ok: false, message: "Only an admin can add people." };
   if (firstAccount && draft.role !== "admin") return { ok: false, message: "The first account must be an admin." };
   const name = clip(draft.name, 80);
-  const username = clip(draft.username, 24).toLowerCase();
+  const username = clip(draft.username, 12).toLowerCase();
   if (!name) return { ok: false, message: "Enter the person's name." };
-  if (!usernameOk(username)) return { ok: false, message: "Username must be 3–24 letters, numbers, dots, or hyphens." };
+  if (!numberOk(username)) {
+    return { ok: false, message: "Enter a student or staff number of 4–12 letters or digits." };
+  }
   if (!draft.passwordHash) return { ok: false, message: "Enter a password." };
   if (state.users.some((user) => user.username === username)) {
-    return { ok: false, message: "That username is already in use." };
+    return { ok: false, message: "That student or staff number is already in use." };
   }
   const user: User = {
     id: crypto.randomUUID(),

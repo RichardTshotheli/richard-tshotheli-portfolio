@@ -93,7 +93,7 @@
   --ring: oklch(0.42 0.11 185);
   --destructive: oklch(0.55 0.19 25);
   --destructive-foreground: oklch(0.98 0.01 25);
-  --lab-header: oklch(0.3 0.06 195);
+  --lab-header: #0a5796;
   --lab-mint: oklch(0.94 0.04 170);
   color: var(--foreground);
   background:

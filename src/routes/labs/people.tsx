@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 
 import { Field, FormMessage, Panel } from "@/components/lab-board/field";
 import { useLabStore } from "@/components/lab-board/lab-store";
+import { LoginQr } from "@/components/lab-board/login-qr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isAdmin, type Role } from "@/lib/lab-board";
@@ -33,7 +34,7 @@ function PeoplePage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="font-semibold">{person.name}</h2>
-                <p className="text-sm text-muted-foreground">@{person.username}</p>
+                <p className="text-sm text-muted-foreground">Student or staff number {person.username}</p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs font-semibold">
                 <span className="rounded-full bg-secondary px-2 py-1">{person.role === "admin" ? "Admin" : "Lab assistant"}</span>
@@ -63,6 +64,13 @@ function PeoplePage() {
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">This is the account you are using.</p>
             )}
+            <div className="mt-4 border-t border-border pt-4">
+              <LoginQr
+                number={person.username}
+                size={112}
+                caption="Scan to open sign-in with this number already filled in."
+              />
+            </div>
           </article>
         ))}
       </section>
@@ -107,7 +115,7 @@ function AddPerson() {
         <Field label="Full name" htmlFor="person-name">
           <Input id="person-name" value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
-        <Field label="Username" htmlFor="person-username">
+        <Field label="Student or staff number" htmlFor="person-username" hint="This is what they type to sign in.">
           <Input id="person-username" value={username} onChange={(event) => setUsername(event.target.value)} />
         </Field>
         <Field label="Password" htmlFor="person-password" hint="At least 6 characters.">

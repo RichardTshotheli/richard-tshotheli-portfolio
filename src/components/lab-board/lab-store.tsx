@@ -130,9 +130,12 @@ export function LabStoreProvider({ children }: { children: ReactNode }) {
     login: async (username, password) => {
       const current = stateRef.current;
       if (!current) return { ok: false, message: "The lab board is still loading." };
+      if (!username.trim()) return { ok: false, message: "Enter your student or staff number." };
       if (!password) return { ok: false, message: "Enter your password." };
       const user = findUser(current, username, await hashPassword(password));
-      if (!user) return { ok: false, message: "That username or password is not recognised, or the account is inactive." };
+      if (!user) {
+        return { ok: false, message: "That student or staff number or password is not recognised, or the account is inactive." };
+      }
       window.sessionStorage.setItem(SESSION_KEY, user.id);
       setSessionId(user.id);
       return { ok: true };

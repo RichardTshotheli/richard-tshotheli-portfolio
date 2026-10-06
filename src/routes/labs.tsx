@@ -1,16 +1,17 @@
 import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 
 import { AuthScreen } from "@/components/lab-board/auth-screen";
+import { TutLogo } from "@/components/lab-board/brand";
 import { LabStoreProvider, useLabStore } from "@/components/lab-board/lab-store";
 
 export const Route = createFileRoute("/labs")({
   head: () => ({
     meta: [
-      { title: "Laboratory operations" },
+      { title: "CSE Labs" },
       {
         name: "description",
         content:
-          "Lab assistants open labs and keep the student register. Admins manage people, equipment, and maintenance notes.",
+          "CSE Labs for Computer Systems Engineering at Tshwane University of Technology. Assistants open labs and keep the register. Admins manage people, equipment, and notes.",
       },
     ],
   }),
@@ -29,7 +30,7 @@ function LabsFrame() {
   const store = useLabStore();
   if (!store.ready || !store.state) {
     return (
-      <div className="lab-app grid min-h-screen place-items-center text-muted-foreground">Loading laboratory operations…</div>
+      <div className="lab-app grid min-h-screen place-items-center text-muted-foreground">Loading CSE Labs…</div>
     );
   }
   if (store.state.users.length === 0) return <AuthScreen mode="setup" />;
@@ -43,13 +44,17 @@ function LabsFrame() {
     <div className="lab-app min-h-screen">
       <header className="border-b border-white/10 bg-[var(--lab-header)] text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-100">Laboratory operations</p>
-            <p className="font-display text-xl font-semibold">Computer systems labs</p>
+          <div className="flex items-center gap-3">
+            <TutLogo className="h-11" />
+            <div>
+              <p className="font-display text-xl font-semibold leading-none">CSE Labs</p>
+              <p className="mt-1 text-xs text-white/80">Computer Systems Engineering</p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <p className="text-teal-50">
+            <p className="text-white">
               {user.name}
+              <span className="ml-2 text-white/70">{user.username}</span>
               <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold">{roleLabel}</span>
             </p>
             <button type="button" className="rounded-full border border-white/30 px-3 py-1 hover:bg-white/10" onClick={() => store.logout()}>

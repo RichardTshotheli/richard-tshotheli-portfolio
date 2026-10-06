@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 
 import { controlClass, Field, FormMessage, Panel } from "@/components/lab-board/field";
 import { useLabStore } from "@/components/lab-board/lab-store";
+import { LoginQr } from "@/components/lab-board/login-qr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,6 +44,16 @@ function LabsPage() {
           </Button>
         ) : null}
       </div>
+
+      <section className="mt-6 flex flex-wrap items-center gap-5 rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <LoginQr size={120} caption="Scan to open CSE Labs." />
+        <div className="max-w-xl">
+          <h2 className="font-display text-2xl font-semibold">Quick sign-in</h2>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            Scan this code with a phone to open CSE Labs. Sign in with a student or staff number and password.
+          </p>
+        </div>
+      </section>
 
       <dl className="mt-6 grid gap-3 sm:grid-cols-3">
         <Stat label="Open labs" value={String(openLabs.length)} tone="open" />
