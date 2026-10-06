@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { useMemo } from "react";
 
@@ -7,7 +7,7 @@ import { ProfileAssistant } from "@/components/profile-assistant";
 import { openProfileAssistant } from "@/lib/profile-assistant";
 import { Button } from "@/components/ui/button";
 
-type Project = { title: string; category: string; description: string; image: string };
+type Project = { title: string; category: string; description: string; image: string; href?: "/labs" };
 type Experience = {
   role: string;
   company: string;
@@ -152,6 +152,14 @@ const fallback: Portfolio = {
   ],
   projects: [
     {
+      title: "Laboratory Board",
+      category: "Laboratory operations",
+      description:
+        "Open a lab when people need it, register attendance as they enter, and keep equipment and computer-lab software up to date.",
+      image: "",
+      href: "/labs",
+    },
+    {
       title: "Inventory Management System",
       category: "Software",
       description: "A system for recording stock, tracking items, and keeping inventory information in one place.",
@@ -265,6 +273,9 @@ function PortfolioPage() {
                 {item.label}
               </a>
             ))}
+            <Link to="/labs" className="transition-colors hover:text-white">
+              Labs
+            </Link>
           </nav>
           <a
             href={content.linkedin}
@@ -279,6 +290,9 @@ function PortfolioPage() {
               {item.label}
             </a>
           ))}
+          <Link to="/labs" className="shrink-0 hover:text-white">
+            Labs
+          </Link>
         </nav>
       </header>
 
@@ -295,6 +309,9 @@ function PortfolioPage() {
             </Button>
             <Button variant="portfolio" size="lg" type="button" onClick={() => openProfileAssistant()}>
               Ask AI
+            </Button>
+            <Button variant="portfolioGlass" size="lg" asChild>
+              <Link to="/labs">Laboratory board</Link>
             </Button>
             <Button variant="portfolioGlass" size="lg" asChild>
               <a href={contactHref}>
@@ -381,6 +398,11 @@ function PortfolioPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-portfolio-teal">{project.category}</p>
                   <h3 className="mt-3 font-display text-2xl font-semibold">{project.title}</h3>
                   <p className="mt-3 leading-relaxed text-portfolio-mist">{project.description}</p>
+                  {project.href === "/labs" ? (
+                    <Link to="/labs" className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                      Open the board <ArrowUpRight className="size-4" aria-hidden="true" />
+                    </Link>
+                  ) : null}
                 </article>
               ))}
             </div>
