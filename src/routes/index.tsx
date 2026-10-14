@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Github, Linkedin } from "lucide-react";
 import { useMemo } from "react";
 
 import portraitImage from "@/assets/richard-portrait.jpg";
@@ -7,7 +7,20 @@ import { ProfileAssistant } from "@/components/profile-assistant";
 import { openProfileAssistant } from "@/lib/profile-assistant";
 import { Button } from "@/components/ui/button";
 
-type Project = { title: string; category: string; description: string; image: string };
+type Project = {
+  title: string;
+  category: string;
+  summary: string;
+  description: string;
+  problem?: string;
+  solution?: string;
+  technologies: string[];
+  features?: string[];
+  role?: string;
+  results?: string;
+  architecture?: string[];
+  featured?: boolean;
+};
 type Experience = {
   role: string;
   company: string;
@@ -21,12 +34,15 @@ type SkillGroup = { label: string; items: string[] };
 type Portfolio = {
   name: string;
   role: string;
+  headline: string;
   intro: string;
+  about: string[];
   bio: string;
   location: string;
   status: string;
   email: string;
   linkedin: string;
+  github: string;
   skills: string[];
   skillGroups: SkillGroup[];
   experience: Experience[];
@@ -37,81 +53,44 @@ type Portfolio = {
 const fallback: Portfolio = {
   name: "Richard Tshotheli",
   role: "Computer Systems Engineer",
+  headline: "Computer Systems Engineering | Cloud & Infrastructure | Software Development | IoT & AI",
   intro:
-    "Computer systems engineer with hands-on experience in software development, systems monitoring, electronics, cloud support, and technical operations.",
-  bio: "Computer Systems Engineering graduate of Tshwane University of Technology. My public profile covers software development, cybersecurity, electronics, cloud and desktop support, databases, and AI and machine learning. I currently supervise laboratory assistants and manage computer systems engineering components at TUT in Soshanguve, after a year as a system monitoring engineer at Kapsch TrafficCom South Africa.",
+    "Computer Systems Engineering professional with hands-on experience in software development, cloud technologies, IT infrastructure, networking, embedded systems, IoT and AI. I build practical systems that combine software, hardware and intelligent technologies to solve real-world problems.",
+  about: [
+    "I am a Computer Systems Engineering professional with a strong interest in cloud computing, IT infrastructure, software development, IoT and artificial intelligence. My experience combines system support, software development and hands-on engineering projects involving web applications, databases, embedded systems and machine learning.",
+    "I enjoy designing complete solutions—from configuring infrastructure and databases to developing applications and integrating hardware. I am particularly interested in Cloud & Infrastructure, Systems Support, Software Engineering and intelligent systems, where I can continue developing practical solutions while expanding my engineering expertise.",
+  ],
+  bio: "",
   location: "Gauteng, South Africa",
   status: "Tshwane University of Technology",
   email: "",
   linkedin: "https://www.linkedin.com/in/richard-tshotheli-069450277",
+  github: "https://github.com/RichardTshotheli",
   skills: [],
   skillGroups: [
-    { label: "Software", items: ["C#", "C++", "JavaScript", "Python", "HTML", "Embarcadero", "PIC programming"] },
     {
-      label: "Systems and networks",
-      items: [
-        "Linux",
-        "Ubuntu",
-        "Cisco networking",
-        "Packet Tracer",
-        "SCADA",
-        "Operating systems",
-        "System monitoring",
-        "Network monitoring tools",
-        "Real-time monitoring",
-        "Remote monitoring",
-        "Remote desktop",
-        "Desktop computers",
-      ],
+      label: "Cloud & Infrastructure",
+      items: ["Microsoft Azure", "Windows Server", "PowerShell", "Virtual Machines", "Networking", "DNS", "DHCP", "TCP/IP", "Firewalls", "Cloud Support", "Linux", "Cisco networking"],
     },
     {
-      label: "Data and cloud",
-      items: [
-        "MySQL",
-        "Oracle Database",
-        "Microsoft Azure",
-        "Microsoft Endpoint Configuration Manager",
-        "SaaS",
-        "Data analysis",
-        "Data processing",
-        "Statistics",
-        "Computational mathematics",
-      ],
+      label: "Software Development",
+      items: ["Python", "C#", "Java", "Flask", "PHP", "HTML", "CSS", "JavaScript", "SQL", "REST APIs", "Git/GitHub"],
     },
     {
-      label: "Electronics",
-      items: ["Digital electronics", "Electrical engineering", "Electronics", "Logic design", "Robotics"],
+      label: "Databases",
+      items: ["MySQL", "SQL", "Database Design", "CRUD", "Data Management"],
     },
     {
-      label: "Software practice",
-      items: [
-        "Software development",
-        "SDLC",
-        "Software system analysis",
-        "Application support",
-        "Service desk",
-        "Service delivery",
-        "Project management",
-        "Microsoft Office",
-        "Microsoft Copilot",
-        "Report writing",
-      ],
+      label: "IoT & Embedded Systems",
+      items: ["ESP32", "Arduino", "PlatformIO", "Sensors", "Microcontrollers", "Embedded C", "IoT Integration"],
     },
-    { label: "AI", items: ["Artificial intelligence", "Machine learning"] },
     {
-      label: "Leadership and laboratories",
-      items: [
-        "Laboratory skills",
-        "Laboratory safety",
-        "Supervision",
-        "Team leadership",
-        "Team management",
-        "Team building",
-        "Teaching",
-        "University lecturing",
-        "Management",
-        "Customer service",
-      ],
+      label: "AI & Data",
+      items: ["TensorFlow/Keras", "CNNs", "Machine Learning", "Google Colab", "Jupyter", "MATLAB", "Data Analysis"],
+    },
+    {
+      label: "Tools & Platforms",
+      items: ["VS Code", "GitHub", "XAMPP", "Docker", "Virtual Machines", "Proteus"],
     },
   ],
   experience: [
@@ -120,10 +99,11 @@ const fallback: Portfolio = {
       company: "Tshwane University of Technology",
       period: "Mar 2025 – Present",
       location: "Soshanguve, Gauteng",
-      summary: "Manager in the Engineering and Technical department.",
+      summary: "Technical and practical work in the Engineering and Technical department: software, laboratory support, and component inventory.",
       duties: [
         "Supervise laboratory assistants for Computer Systems Engineering",
-        "Manage computer systems engineering components and laboratory resources",
+        "Develop and support software used in the computer systems engineering environment",
+        "Manage computer systems engineering components and laboratory inventory",
         "Support laboratory safety and day-to-day laboratory operations",
         "Coordinate practical laboratory work for the Engineering and Technical department",
       ],
@@ -133,13 +113,30 @@ const fallback: Portfolio = {
       company: "Kapsch TrafficCom South Africa",
       period: "Jul 2023 – Jul 2024",
       location: "South Africa",
-      summary: "Specialist in the Engineering and Technical department for intelligent mobility and traffic systems.",
+      summary: "Technical monitoring and support for tolling infrastructure, including E-TOLL operations.",
       duties: [
-        "Monitored live operational systems for traffic and mobility services",
-        "Carried out real-time and remote system monitoring",
-        "Used network monitoring tools to confirm system status",
-        "Supported engineering and technical operations from the specialist desk",
+        "Monitored tolling infrastructure and system events",
+        "Investigated incidents and supported operational reliability",
+        "Verified camera image quality",
+        "Monitored sensors and vehicle classification",
+        "Supported transaction and data monitoring",
       ],
+    },
+    {
+      role: "Software development",
+      company: "Dynamics DNA",
+      period: "",
+      location: "",
+      summary: "Software development on practical systems.",
+      duties: [],
+    },
+    {
+      role: "Cloud support training",
+      company: "Netcampus",
+      period: "",
+      location: "",
+      summary: "Cloud support training.",
+      duties: [],
     },
   ],
   education: [
@@ -152,60 +149,112 @@ const fallback: Portfolio = {
   ],
   projects: [
     {
-      title: "Inventory Management System",
-      category: "Software",
-      description: "A system for recording stock, tracking items, and keeping inventory information in one place.",
-      image: "",
+      title: "Smart Inventory Management System",
+      category: "Full-stack software",
+      featured: true,
+      summary: "A role-based inventory platform for component requests, approvals, documents and stock tracking.",
+      description:
+        "Smart Inventory Management System is a role-based platform for component requests, approvals, document management and inventory tracking.",
+      problem: "Stock, component requests and approvals were hard to follow when the records were not in one system.",
+      solution: "A role-based inventory platform that records stock, requests, approvals and related documents in one place.",
+      technologies: ["HTML", "CSS", "JavaScript", "SQL", "REST APIs"],
+      features: ["Role-based access", "Component requests", "Approvals", "Document management", "Inventory tracking"],
+      role: "Designed and developed the system, including the request and approval flow and the inventory records.",
+      results: "Developed a role-based inventory management platform supporting component requests, approvals, document management and inventory tracking.",
     },
     {
-      title: "Fire and Gas Management System",
-      category: "Safety systems",
-      description: "A system for monitoring fire and gas conditions and supporting the response around them.",
-      image: "",
+      title: "IoT Fire & Gas Monitoring System",
+      category: "ESP32 / IoT",
+      featured: true,
+      summary: "Hardware and software for monitoring fire and gas conditions, with a web dashboard and alerts.",
+      description:
+        "IoT Fire and Gas Monitoring System connects sensors to an ESP32, then to a network, database and web dashboard for real-time monitoring and alerts.",
+      problem: "Fire and gas conditions need to be seen as they happen, not only checked on site.",
+      solution: "Sensors report through an ESP32 to a network path that stores readings and shows them on a web dashboard, with alerts when conditions need attention.",
+      technologies: ["ESP32", "Sensors", "IoT Integration", "Web dashboard"],
+      features: ["Real-time monitoring", "Sensor readings", "Web dashboard", "Alerts"],
+      role: "Built the monitoring path from the sensors and ESP32 through to the dashboard and alerts.",
+      results: "A working hardware and software system for fire and gas monitoring, rather than a software-only demo.",
+      architecture: ["Sensors", "ESP32", "Network / API", "Database", "Web dashboard", "Alerts"],
+    },
+    {
+      title: "CNN Image Classification",
+      category: "Machine learning",
+      featured: true,
+      summary: "A convolutional neural network for image classification, with a measured validation result.",
+      description: "CNN image classification project. The published result is 93.85% validation accuracy.",
+      problem: "Images needed to be classified by a model that could be measured against held-out validation data.",
+      solution: "Trained a convolutional neural network for image classification and recorded how it performed on validation data.",
+      technologies: ["Python", "TensorFlow/Keras", "CNNs", "Google Colab"],
+      features: ["Convolutional neural network", "Training and validation", "Image classification"],
+      role: "Prepared the model, trained it, and recorded the validation result.",
+      results: "93.85% validation accuracy achieved on CNN image classification.",
+    },
+    {
+      title: "NYC Taxi Trip Duration Prediction",
+      category: "Data science",
+      featured: true,
+      summary: "A prediction project that estimates how long a New York taxi trip will take.",
+      description: "NYC taxi trip duration prediction uses trip data to estimate how long a journey takes.",
+      problem: "Trip duration is not obvious from pickup and drop-off alone, so it has to be predicted from the trip data.",
+      solution: "A data science model that learns from New York taxi trips and estimates journey duration.",
+      technologies: ["Python", "Data Analysis", "Jupyter"],
+      features: ["Trip data", "Duration prediction", "Model evaluation"],
+      role: "Explored the trip data and built the duration prediction.",
+      results: "Uses trip data to estimate how long a New York taxi journey takes.",
     },
     {
       title: "Smart Car",
       category: "Embedded systems",
-      description: "A vehicle project that combines electronics and control for smarter car functions.",
-      image: "",
+      summary: "A vehicle project that combines electronics and control for smarter car functions.",
+      description: "Smart Car is a vehicle project that combines electronics and control for smarter car functions.",
+      technologies: ["Embedded systems", "Electronics"],
     },
     {
       title: "Remote Room Temperature Controller",
       category: "Control systems",
-      description: "A controller for reading room temperature and adjusting it from a remote point.",
-      image: "",
+      summary: "A controller for reading room temperature and adjusting it from a remote point.",
+      description: "Remote Room Temperature Controller reads room temperature and adjusts it from a remote point.",
+      technologies: ["Sensors", "Control systems"],
     },
     {
       title: "Smart Security System",
       category: "Security",
-      description: "A security system that brings sensing and control together to monitor a space.",
-      image: "",
+      summary: "A security system that brings sensing and control together to monitor a space.",
+      description: "Smart Security System brings sensing and control together to monitor a space.",
+      technologies: ["Sensors", "Embedded systems"],
     },
     {
       title: "Intercom System",
       category: "Communications",
-      description: "An intercom system for voice communication between points in a building or site.",
-      image: "",
+      summary: "An intercom system for voice communication between points in a building or site.",
+      description: "Intercom System provides voice communication between points in a building or site.",
+      technologies: ["Electronics", "Communications"],
     },
     {
       title: "DC Power Supply",
       category: "Electronics",
-      description: "A built DC power supply that provides a controlled direct-current source.",
-      image: "",
+      summary: "A built DC power supply that provides a controlled direct-current source.",
+      description: "DC Power Supply is a built supply that provides a controlled direct-current source.",
+      technologies: ["Electronics", "Power"],
     },
   ],
 };
 
+fallback.bio = fallback.about.join(" ");
 fallback.skills = fallback.skillGroups.flatMap((group) => group.items);
 
 const nav = [
   { href: "#about", label: "About" },
   { href: "#experience", label: "Experience" },
   { href: "#projects", label: "Projects" },
-  { href: "#expertise", label: "Expertise" },
+  { href: "#skills", label: "Skills" },
   { href: "#education", label: "Education" },
+  { href: "#cv", label: "CV" },
   { href: "#contact", label: "Contact" },
 ];
+
+const cvHref = `${import.meta.env.BASE_URL}richard-tshotheli-cv.html`;
 
 function isEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -218,12 +267,12 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Portfolio of Richard Tshotheli, a computer systems engineer in Pretoria working across software, systems monitoring, electronics, and technical operations.",
+          "Computer Systems Engineering, cloud and infrastructure, software development, IoT and AI. Portfolio of Richard Tshotheli.",
       },
       { property: "og:title", content: "Richard Tshotheli — Computer Systems Engineer" },
       {
         property: "og:description",
-        content: "Software, systems monitoring, electronics, and technical operations. Based in Pretoria.",
+        content: "Cloud and infrastructure, software, IoT and AI. Based in Gauteng, South Africa.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -234,6 +283,8 @@ export const Route = createFileRoute("/")({
 
 function PortfolioPage() {
   const content = fallback;
+  const featured = content.projects.filter((project) => project.featured);
+  const otherProjects = content.projects.filter((project) => !project.featured);
 
   const initials = useMemo(
     () =>
@@ -246,9 +297,6 @@ function PortfolioPage() {
     [content.name],
   );
 
-  const contactHref = isEmail(content.email) ? `mailto:${content.email}` : content.linkedin;
-  const contactLabel = isEmail(content.email) ? content.email : "LinkedIn";
-
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-portfolio-navy text-white">
@@ -259,21 +307,23 @@ function PortfolioPage() {
             </span>
             <span className="font-display text-lg font-semibold tracking-tight">{content.name}</span>
           </a>
-          <nav className="hidden items-center gap-6 text-sm text-white/75 md:flex" aria-label="Page">
+          <nav className="hidden items-center gap-5 text-sm text-white/75 lg:flex" aria-label="Page">
             {nav.map((item) => (
               <a key={item.href} href={item.href} className="transition-colors hover:text-white">
                 {item.label}
               </a>
             ))}
           </nav>
-          <a
-            href={content.linkedin}
-            className="inline-flex items-center gap-1 text-sm font-medium text-portfolio-gold hover:underline"
-          >
-            LinkedIn <ArrowUpRight className="size-4" aria-hidden="true" />
-          </a>
+          <div className="flex items-center gap-2">
+            <a href={content.linkedin} aria-label="LinkedIn" className="grid size-9 place-items-center text-portfolio-gold hover:text-white">
+              <Linkedin className="size-4" />
+            </a>
+            <a href={content.github} aria-label="GitHub" className="grid size-9 place-items-center text-portfolio-gold hover:text-white">
+              <Github className="size-4" />
+            </a>
+          </div>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-5 overflow-x-auto px-5 pb-3 text-sm text-white/75 md:hidden" aria-label="Page">
+        <nav className="mx-auto flex max-w-6xl gap-5 overflow-x-auto px-5 pb-3 text-sm text-white/75 lg:hidden" aria-label="Page">
           {nav.map((item) => (
             <a key={item.href} href={item.href} className="shrink-0 hover:text-white">
               {item.label}
@@ -284,22 +334,25 @@ function PortfolioPage() {
 
       <section id="top" className="mx-auto grid max-w-6xl items-end gap-12 px-5 pb-20 pt-14 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] lg:pt-20">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-portfolio-gold">{content.role}</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-portfolio-gold">{content.headline}</p>
           <h1 className="mt-4 max-w-3xl font-display text-5xl font-semibold leading-[1.02] tracking-tight sm:text-7xl">
             {content.name}
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-portfolio-mist sm:text-xl">{content.intro}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button variant="portfolioLight" size="lg" asChild>
-              <a href="#experience">View experience</a>
+              <a href="#projects">View projects</a>
             </Button>
-            <Button variant="portfolio" size="lg" type="button" onClick={() => openProfileAssistant()}>
-              Ask AI
+            <Button variant="portfolio" size="lg" asChild>
+              <a href={cvHref}>Download CV</a>
             </Button>
             <Button variant="portfolioGlass" size="lg" asChild>
-              <a href={contactHref}>
-                {contactLabel} <ArrowUpRight />
+              <a href="#contact">
+                Contact me <ArrowUpRight />
               </a>
+            </Button>
+            <Button variant="portfolioGlass" size="lg" type="button" onClick={() => openProfileAssistant()}>
+              Ask AI
             </Button>
           </div>
           <dl className="mt-10 grid gap-6 border-t border-portfolio-line pt-6 sm:grid-cols-2">
@@ -330,8 +383,12 @@ function PortfolioPage() {
 
       <section id="about" className="border-t border-portfolio-line">
         <div className="mx-auto grid max-w-6xl gap-6 px-5 py-16 sm:px-8 lg:grid-cols-[12rem_minmax(0,1fr)] lg:py-24">
-          <h2 className="font-display text-3xl font-semibold">About</h2>
-          <p className="max-w-3xl text-lg leading-relaxed text-foreground/90 sm:text-xl">{content.bio}</p>
+          <h2 className="font-display text-3xl font-semibold">About me</h2>
+          <div className="max-w-3xl space-y-5 text-lg leading-relaxed text-foreground/90">
+            {content.about.map((paragraph) => (
+              <p key={paragraph.slice(0, 24)}>{paragraph}</p>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -340,7 +397,7 @@ function PortfolioPage() {
           <h2 className="font-display text-3xl font-semibold">Experience</h2>
           <ol className="space-y-5">
             {content.experience.map((item, index) => (
-              <li key={`${item.role}-${index}`} className="border border-portfolio-line border-l-4 border-l-primary bg-portfolio-surface p-6 sm:p-8">
+              <li key={`${item.company}-${index}`} className="border border-portfolio-line border-l-4 border-l-primary bg-portfolio-surface p-6 sm:p-8">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
                   <h3 className="font-display text-2xl font-semibold leading-snug">{item.role}</h3>
                   {item.period ? <p className="text-sm font-semibold text-portfolio-teal">{item.period}</p> : null}
@@ -350,20 +407,16 @@ function PortfolioPage() {
                   {item.location ? ` · ${item.location}` : ""}
                 </p>
                 {item.summary ? <p className="mt-3 max-w-2xl leading-relaxed text-foreground/85">{item.summary}</p> : null}
-                {item.duties?.length ? (
-                  <div className="mt-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-portfolio-gold">Duties</p>
-                    <ul className="mt-3 space-y-2">
-                      {item.duties.filter(Boolean).map((duty) => (
-                        <li key={duty} className="flex gap-3 leading-relaxed">
-                          <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
-                          <span>{duty}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                {item.duties.length ? (
+                  <ul className="mt-5 space-y-2">
+                    {item.duties.map((duty) => (
+                      <li key={duty} className="flex gap-3 leading-relaxed">
+                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
+                        <span>{duty}</span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : null}
-                <span className="sr-only">Role {String(index + 1).padStart(2, "0")}</span>
               </li>
             ))}
           </ol>
@@ -373,14 +426,56 @@ function PortfolioPage() {
       <section id="projects" className="border-t border-portfolio-line">
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[12rem_minmax(0,1fr)] lg:py-24">
           <h2 className="font-display text-3xl font-semibold">Projects</h2>
-          <div>
-            <p className="max-w-2xl leading-relaxed text-portfolio-mist">Systems and hardware Richard has built, from inventory software to safety, control, and power electronics.</p>
-            <div className="mt-8 grid gap-5 md:grid-cols-2">
-              {content.projects.map((project, index) => (
-                <article key={`${project.title}-${index}`} className="border border-portfolio-line border-t-4 border-t-portfolio-teal bg-portfolio-surface p-6 sm:p-8">
+          <div className="space-y-6">
+            <p className="max-w-2xl leading-relaxed text-portfolio-mist">
+              Software, IoT, machine learning and electronics. The first four are the projects to read first.
+            </p>
+            {featured.map((project) => (
+              <article key={project.title} className="border border-portfolio-line border-t-4 border-t-portfolio-teal bg-portfolio-surface p-6 sm:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-portfolio-teal">{project.category}</p>
+                <h3 className="mt-3 font-display text-3xl font-semibold">{project.title}</h3>
+                <p className="mt-3 max-w-3xl text-lg leading-relaxed">{project.summary}</p>
+                <dl className="mt-6 space-y-4">
+                  <ProjectFact label="Problem" value={project.problem} />
+                  <ProjectFact label="Solution" value={project.solution} />
+                  <ProjectFact label="My role" value={project.role} />
+                  <ProjectFact label="Results" value={project.results} />
+                </dl>
+                {project.features?.length ? (
+                  <div className="mt-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-portfolio-gold">Key features</p>
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {project.features.map((feature) => (
+                        <li key={feature} className="rounded-md border border-primary/15 bg-primary/10 px-2.5 py-1 text-sm">
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                <TechList items={project.technologies} />
+                {project.architecture?.length ? (
+                  <div className="mt-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-portfolio-gold">Architecture</p>
+                    <ol className="mt-3 flex flex-wrap items-center gap-2">
+                      {project.architecture.map((step, index) => (
+                        <li key={step} className="flex items-center gap-2">
+                          <span className="rounded-md border border-portfolio-line bg-secondary px-2.5 py-1 text-sm">{step}</span>
+                          {index < project.architecture!.length - 1 ? <span className="text-portfolio-teal">→</span> : null}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : null}
+              </article>
+            ))}
+            <div className="grid gap-5 md:grid-cols-2">
+              {otherProjects.map((project) => (
+                <article key={project.title} className="border border-portfolio-line bg-portfolio-surface p-6">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-portfolio-teal">{project.category}</p>
                   <h3 className="mt-3 font-display text-2xl font-semibold">{project.title}</h3>
-                  <p className="mt-3 leading-relaxed text-portfolio-mist">{project.description}</p>
+                  <p className="mt-3 leading-relaxed text-portfolio-mist">{project.summary}</p>
+                  <TechList items={project.technologies} />
                 </article>
               ))}
             </div>
@@ -388,24 +483,19 @@ function PortfolioPage() {
         </div>
       </section>
 
-      <section id="expertise" className="border-t border-portfolio-line">
+      <section id="skills" className="border-t border-portfolio-line">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
           <div className="grid gap-8 lg:grid-cols-[12rem_minmax(0,1fr)]">
-            <h2 className="font-display text-3xl font-semibold">Expertise</h2>
+            <h2 className="font-display text-3xl font-semibold">Skills</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               {content.skillGroups.map((group, index) => (
                 <article key={group.label} className="border border-portfolio-line bg-portfolio-surface p-6 sm:p-7">
-                  <h3
-                    className={`text-xs font-semibold uppercase tracking-[0.14em] ${index % 3 === 1 ? "text-portfolio-teal" : index % 3 === 2 ? "text-portfolio-gold" : "text-primary"}`}
-                  >
+                  <h3 className={`text-xs font-semibold uppercase tracking-[0.14em] ${index % 3 === 1 ? "text-portfolio-teal" : index % 3 === 2 ? "text-portfolio-gold" : "text-primary"}`}>
                     {group.label}
                   </h3>
                   <ul className="mt-4 flex flex-wrap gap-2">
                     {group.items.map((item) => (
-                      <li
-                        key={item}
-                        className="rounded-md border border-primary/15 bg-primary/10 px-2.5 py-1 text-sm text-foreground"
-                      >
+                      <li key={item} className="rounded-md border border-primary/15 bg-primary/10 px-2.5 py-1 text-sm text-foreground">
                         {item}
                       </li>
                     ))}
@@ -414,14 +504,13 @@ function PortfolioPage() {
               ))}
             </div>
           </div>
-
         </div>
       </section>
 
       <section id="education" className="border-t border-portfolio-line bg-secondary">
-        <div className="mx-auto grid max-w-6xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[12rem_minmax(0,1fr)] lg:py-24">
+        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[12rem_minmax(0,1fr)] lg:py-24">
           <h2 className="font-display text-3xl font-semibold">Education</h2>
-          <div className="space-y-8">
+          <div className="space-y-10">
             {content.education.map((item) => (
               <article key={item.qualification}>
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
@@ -432,6 +521,28 @@ function PortfolioPage() {
                 <p className="mt-3 max-w-2xl leading-relaxed text-foreground/85">{item.detail}</p>
               </article>
             ))}
+            <article id="certifications">
+              <h3 className="font-display text-2xl font-semibold">Certifications</h3>
+              <p className="mt-3 max-w-2xl leading-relaxed text-foreground/85">
+                Microsoft, cloud and networking certificates will be added here as they are completed.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="cv" className="border-t border-portfolio-line">
+        <div className="mx-auto grid max-w-6xl gap-6 px-5 py-16 sm:px-8 lg:grid-cols-[12rem_minmax(0,1fr)] lg:py-24">
+          <h2 className="font-display text-3xl font-semibold">CV</h2>
+          <div>
+            <p className="max-w-2xl text-lg leading-relaxed">
+              The downloadable CV is the Cloud &amp; Infrastructure version. The rest of this page still shows the software, IoT and AI work.
+            </p>
+            <Button variant="portfolio" size="lg" className="mt-6" asChild>
+              <a href={cvHref}>
+                Download CV <ArrowUpRight />
+              </a>
+            </Button>
           </div>
         </div>
       </section>
@@ -441,12 +552,17 @@ function PortfolioPage() {
           <h2 className="font-display text-3xl font-semibold text-portfolio-gold">Contact</h2>
           <div>
             <p className="max-w-xl font-display text-4xl font-semibold leading-tight sm:text-5xl">
-              Happy to talk about systems, software, and technical roles.
+              Open to Cloud &amp; Infrastructure, systems support, software and IoT roles.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button variant="portfolio" size="lg" asChild>
                 <a href={content.linkedin}>
-                  LinkedIn <ArrowUpRight />
+                  <Linkedin /> LinkedIn
+                </a>
+              </Button>
+              <Button variant="portfolioGlass" size="lg" asChild>
+                <a href={content.github}>
+                  <Github /> GitHub
                 </a>
               </Button>
               {isEmail(content.email) ? (
@@ -464,5 +580,27 @@ function PortfolioPage() {
 
       <ProfileAssistant profile={content} />
     </main>
+  );
+}
+
+function ProjectFact({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-portfolio-gold">{label}</dt>
+      <dd className="mt-1 max-w-3xl leading-relaxed text-foreground/90">{value}</dd>
+    </div>
+  );
+}
+
+function TechList({ items }: { items: string[] }) {
+  return (
+    <ul className="mt-4 flex flex-wrap gap-2">
+      {items.map((item) => (
+        <li key={item} className="rounded-md bg-portfolio-navy px-2.5 py-1 text-xs font-medium text-white">
+          {item}
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -7,6 +7,7 @@ export type AssistantProfile = {
   status: string;
   email: string;
   linkedin: string;
+  github?: string;
   skillGroups: { label: string; items: string[] }[];
   experience: {
     role: string;
@@ -36,8 +37,8 @@ const roleGuides: { test: RegExp; title: string; skills: string[]; note: string;
   {
     test: /software|programmer|full[- ]?stack|web develop|application develop/,
     title: "software development",
-    skills: ["C#", "C++", "JavaScript", "Python", "HTML", "Software development", "SDLC", "Software system analysis", "Embarcadero", "PIC programming"],
-    note: "Those skills are published. His job titles are laboratory supervision and system monitoring, not a dedicated software developer post.",
+    skills: ["Python", "C#", "Java", "Flask", "PHP", "HTML", "CSS", "JavaScript", "SQL", "REST APIs", "Git/GitHub"],
+    note: "Software development is on the profile, including the Smart Inventory Management System and software development at Dynamics DNA. The dated job titles are laboratory supervision at TUT and system monitoring at Kapsch.",
     strength: "partial",
   },
   {
@@ -50,22 +51,22 @@ const roleGuides: { test: RegExp; title: string; skills: string[]; note: string;
   {
     test: /cloud|azure|saas/,
     title: "cloud support",
-    skills: ["Microsoft Azure", "SaaS", "Microsoft Endpoint Configuration Manager", "Linux"],
-    note: "Cloud support is on his headline, with Azure and related skills listed. There is no cloud-engineer job title.",
+    skills: ["Microsoft Azure", "Windows Server", "PowerShell", "Virtual Machines", "Networking", "DNS", "DHCP", "TCP/IP", "Firewalls", "Cloud Support", "Linux"],
+    note: "Cloud and infrastructure is the direction he is targeting. Those skills are listed, and Netcampus is recorded as cloud support training. There is no cloud-engineer job title.",
     strength: "partial",
   },
   {
     test: /database|dba|mysql|oracle|sql/,
     title: "database work",
-    skills: ["MySQL", "Oracle Database", "Data analysis", "Data processing"],
-    note: "Database administrator is part of his headline, backed by MySQL and Oracle. No database-administrator job title is listed.",
+    skills: ["MySQL", "SQL", "Database Design", "CRUD", "Data Management"],
+    note: "Database skills are listed, and the inventory system uses data management. No database-administrator job title is listed.",
     strength: "partial",
   },
   {
     test: /network|cisco|packet tracer|scada/,
     title: "networks and monitoring",
-    skills: ["Cisco networking", "Packet Tracer", "SCADA", "Linux", "Ubuntu", "Network monitoring tools", "System monitoring", "Real-time monitoring", "Remote monitoring"],
-    note: "This lines up with his system monitoring work at Kapsch TrafficCom.",
+    skills: ["Networking", "DNS", "DHCP", "TCP/IP", "Firewalls", "Cisco networking", "Linux", "Cloud Support"],
+    note: "This lines up with his system monitoring work on tolling infrastructure at Kapsch TrafficCom.",
     strength: "aligned",
   },
   {
@@ -76,17 +77,17 @@ const roleGuides: { test: RegExp; title: string; skills: string[]; note: string;
     strength: "partial",
   },
   {
-    test: /electronic|electrical|robot|embedded|pic\b/,
-    title: "electronics",
-    skills: ["Digital electronics", "Electrical engineering", "Electronics", "Logic design", "Robotics", "PIC programming"],
-    note: "Electronics is a headline discipline and a skill group, alongside his computer systems qualification.",
+    test: /iot|esp32|arduino|electronic|electrical|robot|embedded|sensor/,
+    title: "IoT and embedded systems",
+    skills: ["ESP32", "Arduino", "PlatformIO", "Sensors", "Microcontrollers", "Embedded C", "IoT Integration"],
+    note: "The fire and gas monitoring project uses sensors, an ESP32 and a web dashboard. Other embedded projects are on the portfolio.",
     strength: "partial",
   },
   {
     test: /machine learning|\bai\b|artificial intelligence|data scien/,
     title: "AI and machine learning",
-    skills: ["Artificial intelligence", "Machine learning", "Data analysis", "Statistics", "Python"],
-    note: "AI and machine learning are listed skills. The profile does not describe a machine-learning job or project.",
+    skills: ["TensorFlow/Keras", "CNNs", "Machine Learning", "Google Colab", "Jupyter", "MATLAB", "Data Analysis", "Python"],
+    note: "The CNN image classification project records 93.85% validation accuracy. NYC taxi trip duration prediction is also listed. There is no machine-learning job title.",
     strength: "partial",
   },
   {
@@ -106,8 +107,8 @@ const roleGuides: { test: RegExp; title: string; skills: string[]; note: string;
 ];
 
 const absentTools = [
-  "React", "Angular", "Vue", "Node.js", "Java", "PHP", "Ruby", "Golang", "Rust", "Swift", "Kotlin",
-  "AWS", "Google Cloud", "Kubernetes", "Docker", "Terraform", "CCNA", "CCNP", "Security+", "CISSP",
+  "React", "Angular", "Vue", "Node.js", "Ruby", "Golang", "Rust", "Swift", "Kotlin",
+  "AWS", "Google Cloud", "Kubernetes", "Terraform", "CCNA", "CCNP", "Security+", "CISSP",
   "CEH", "Django", "Spring", ".NET", "ASP.NET", "Power BI", "Tableau", "SAP", "Salesforce",
 ];
 
@@ -256,7 +257,8 @@ function aboutAnswer(profile: AssistantProfile) {
 
 function contactAnswer(profile: AssistantProfile) {
   const email = profile.email.includes("@") ? ` Email on the portfolio: ${profile.email}.` : " No public email is listed.";
-  return `You can reach ${profile.name} on LinkedIn: ${profile.linkedin}.${email} He is currently with ${profile.status}.`;
+  const github = profile.github ? ` GitHub: ${profile.github}.` : "";
+  return `You can reach ${profile.name} on LinkedIn: ${profile.linkedin}.${github}${email} He is currently with ${profile.status}.`;
 }
 
 function fitAnswer(profile: AssistantProfile, question: string) {
@@ -283,7 +285,7 @@ function rankChunks(profile: AssistantProfile, q: string) {
   const chunks: { id: string; text: string }[] = [
     { id: "about", text: `${profile.name} ${profile.role} ${profile.intro} ${profile.bio} ${profile.status}` },
     { id: "place", text: `${profile.location} Pretoria Soshanguve Gauteng based lives` },
-    { id: "contact", text: `${profile.linkedin} ${profile.email} contact reach` },
+    { id: "contact", text: `${profile.linkedin} ${profile.github ?? ""} ${profile.email} contact reach github` },
   ];
   profile.experience.forEach((item, index) => {
     chunks.push({ id: `exp-${index}`, text: `${item.role} ${item.company} ${item.period} ${item.location} ${item.summary} ${(item.duties ?? []).join(" ")}` });
