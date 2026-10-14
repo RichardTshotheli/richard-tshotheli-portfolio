@@ -143,8 +143,14 @@ const fallback: Portfolio = {
     {
       qualification: "Advanced Diploma, Computer Systems Engineering",
       institution: "Tshwane University of Technology",
+      period: "2025 – Present",
+      detail: "Pretoria. Advanced Diploma in computer systems engineering.",
+    },
+    {
+      qualification: "National Diploma, Computer Systems Engineering",
+      institution: "Tshwane University of Technology",
       period: "2018 – 2023",
-      detail: "Pretoria. Diploma and Advanced Diploma in computer systems engineering and computer technology.",
+      detail: "Pretoria. National Diploma in computer systems engineering and computer technology.",
     },
   ],
   projects: [
@@ -521,12 +527,6 @@ function PortfolioPage() {
                 <p className="mt-3 max-w-2xl leading-relaxed text-foreground/85">{item.detail}</p>
               </article>
             ))}
-            <article id="certifications">
-              <h3 className="font-display text-2xl font-semibold">Certifications</h3>
-              <p className="mt-3 max-w-2xl leading-relaxed text-foreground/85">
-                Microsoft, cloud and networking certificates will be added here as they are completed.
-              </p>
-            </article>
           </div>
         </div>
       </section>

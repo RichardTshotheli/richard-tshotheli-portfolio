@@ -322,7 +322,7 @@ function readMemory(profile: AssistantProfile, history: ChatTurn[]): Memory {
     discussedAbout: /is a computer systems engineer/.test(blob),
     discussedExperience: /Say which one you want|The published duties are|Ask if you want the other role/.test(blob),
     discussedSkills: /skills are grouped|Want the rest of that group/.test(blob),
-    discussedEducation: /Advanced Diploma|No education record/.test(blob),
+    discussedEducation: /Advanced Diploma|National Diploma|No education record/.test(blob),
     discussedContact: /You can reach/.test(blob),
     discussedFocus: /published projects|No projects are listed/.test(blob),
     lastCompany,
